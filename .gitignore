@@ -1,0 +1,21 @@
+# -*- mode: gitignore; -*-
+# 忽略如下文件夹，即将其不纳入版本控制：
+
+/Python Scripts/
+/python_work/
+/Release/
+/web/
+/**/.idea/
+/**/__pycache__/
+/**/output/
+
+/**/docs/*
+!/**/docs/config.cfg
+!/**/docs/python_logo.gif
+!/**/docs/readme.txt
+!/**/docs/template.xlsx
+!/**/docs/结算信息.xlsx
+!/**/docs/结算信息--原版备份.xlsx
+
+
+# 忽略如下文件，即将其不纳入版本控制：
