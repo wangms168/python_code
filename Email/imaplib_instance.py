@@ -1,4 +1,4 @@
-from imaplib_imapObj import create_imapObj
+from imaplib_imapobj import create_imapObj
 
 import email
 import email.parser
