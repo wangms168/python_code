@@ -1,11 +1,11 @@
+import configparser
+import os
 from imaplib_imapobj import create_imapObj
 from imaplib_folder_parse import folder_parse
 from pprint import pprint
 
-import email
+from email.header import decode_header
 import email.parser
-import configparser
-import os
 
 
 def header_decode(header):
@@ -15,7 +15,7 @@ def header_decode(header):
     #         text = text.decode(encoding or "us-ascii")
     #     hdr += text
 
-    [(text, encoding)] = email.header.decode_header(Subject)
+    [(text, encoding)] = decode_header(Subject)
     # 在不转换字符集的情况下对消息标头值进行解码。 header 为标头值。这个函数返回一个 (decoded_string, charset) 对的列表，
     # 其中包含标头的每个已解码部分。 对于标头的未编码部分 charset 为 None，在其他情况下则为一个包含已编码字符串中所指定字符集名称的小写字符串。
     # print('text:', text)
@@ -35,7 +35,46 @@ def header_decode(header):
 #                 att_file = open('E:\\调自有汇总邮件附件\\' + fname, 'wb') #指定目录下创建文件，注意二进制文件需要用wb模式打开
 #                 att_file.write(attach_data) # 保存附件
 #                 att_file.close()
-                
+
+exts = exts=['.xls', '.xlsx', '.txt']
+savedir = r'output/'
+
+def get_att(msg):       
+    """
+    下载邮件中的附件
+    """
+    attachments = []
+    for part in msg.walk():
+        if part.get_content_maintype() == 'multipart':
+            continue
+        if part.get('Content-Disposition') is None:
+            continue
+        fileName = part.get_filename()
+
+        # 如果文件名为纯数字、字母时不需要解码，否则需要解码
+        try:
+            fileName = decode_header(fileName)[0][0].decode(decode_header(fileName)[0][1])
+        except:
+            pass
+
+        # 只获取指定拓展名的附件
+        extension = os.path.splitext(os.path.split(fileName)[1])[1]
+        if extension not in exts:
+            continue
+
+        # 如果获取到了文件，则将文件保存在指定的目录下
+        if fileName:
+            if not os.path.exists(savedir):
+                os.makedirs(savedir)
+            filePath = os.path.join(savedir, fileName)
+            fp = open(filePath, 'wb')
+            fp.write(part.get_payload(decode=True))
+            fp.close()
+            attachments.append(fileName)
+
+    return attachments
+
+
 with create_imapObj() as Obj:
 
     # folder list
@@ -86,15 +125,13 @@ with create_imapObj() as Obj:
                                                         # 第二个项目的第二个元素是一个字节型字符串（ b')'）
     # IMAP4.fetch(message_set, message_parts)取回（部分）信息。 message_parts应该是一串括在圆括号内的消息部分名。，例如: "(UID BODY[TEXT])"。 返回的数据是由消息部分信封和数据组成的元组。
 
+# ---------------------------------以上是imaplib的事，以下是email的事----------------------------------------------
+
     print(type(msg_data), len(msg_data))
     print(type(msg_data[::2]), len(msg_data[::2]))
     i = 0
     for id, msgData_bytes in msg_data[::2]:
-        i+=1
-        print('id_'+str(i)+':', id)
         # print('msgData_bytes:', msgData_bytes)
-
-        # ---------------------------------以上是imaplib的事，以下是email的事----------------------------------------------
 
         # 获取消息对象
         msgOjb = email.message_from_bytes(msgData_bytes)
@@ -108,9 +145,8 @@ with create_imapObj() as Obj:
 
         # 对消息标头进行解码
         Subject = header_decode(Subject)
-        print('decoded:', Subject, '\n')
-
-
+        i+=1
+        print('id_'+str(i)+':', id, 'decoded Subject:', Subject, '\n')
 
         if Subject is None:
             # serv.uid('STORE', num, '-FLAGS', '\SEEN')
@@ -124,12 +160,12 @@ with create_imapObj() as Obj:
         titles = titles.split('|')
         for title in titles:
             pass
-            # if title in Subject:
-            #     # nameN+=1  # 含有关键字，可以读取
-            #     # print(title)
-            #     print('             '+Subject)
-            #     get_att(message_ojb)
-            #     break
+            if title in Subject:
+                # nameN+=1  # 含有关键字，可以读取
+                # print(title)
+                # print('             '+Subject)
+                get_att(msgOjb)
+                break
         # if nameN==0: # 不含关键字，将状态退回未读
         #     Obj.store(num, '-FLAGS', '\SEEN')
         #     continue       

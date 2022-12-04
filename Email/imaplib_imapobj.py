@@ -4,8 +4,8 @@
 # Embedded file name: e:\python_code\Email\imaplib_imapObj.py
 # Compiled at: 2022-12-04 12:15:40
 # Size of source mod 2**32: 1238 bytes
-from imaplib import IMAP4
 import configparser, os
+from imaplib import IMAP4
 
 def create_imapObj(verbose=False):
     config = configparser.ConfigParser()
