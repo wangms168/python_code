@@ -69,11 +69,11 @@ def create_imapObj(hostname, port, username, password, verbose=False):
         print('Logging in as', username)
     try:
         imapObj.login(username, password)
-        print('Connect to {0}:{1} successfully'.format(hostname, port))
+        print('\nConnect to {0}:{1} successfully'.format(hostname, port))
         return imapObj
     except Exception as err:
         try:
-            print('Connect to {0}:{1} failed'.format(hostname, port), err)
+            print('\nConnect to {0}:{1} failed'.format(hostname, port), err)
         finally:
             err = None
             del err
@@ -81,7 +81,9 @@ def create_imapObj(hostname, port, username, password, verbose=False):
 def get_email(hostname, port, username, password, verbose=False):
 
     with create_imapObj(hostname, port, username, password, verbose=False) as Obj:
-        # folder list
+
+# ----------------------------------- folder list ---------------------------------------
+        
         typ, mbox_data = Obj.list()
         mbox_name_list = []
         for line in mbox_data:
@@ -89,9 +91,10 @@ def get_email(hostname, port, username, password, verbose=False):
             mbox_name_list.append(mbox_name)
         # pprint(mbox_name_list)
 
-        # select folder
+# ----------------------------------- select folder ---------------------------------------
+        
         # typ, data = Obj.select('"{}"'.format(mbox_name_list[0]), readonly=True)
-        typ, data = Obj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+        (typ, data) = Obj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
         # typ, data = Obj.select('INBOX', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
         # IMAP4.select(mailbox='INBOX', readonly=False)
         # 选择一个邮箱。 返回的数据是 mailbox 中消息的数量 (EXISTS 响应)               
@@ -105,35 +108,36 @@ def get_email(hostname, port, username, password, verbose=False):
             msgs_num = int(data[0])
             print('There are {} messages in INBOX'.format(msgs_num))
 
-            # search mail
-            days = int(config['other']['days'])
+# ----------------------------------- search mail ---------------------------------------
+        
             Date = date.today() - timedelta(days=days)
             Date = Date.strftime("%d-%b-%Y")
             add = "ebank@eb.spdb.com.cn"
             criterion = f'(SINCE {Date} FROM {add})'
-            typ, msg_ids = Obj.search(None, criterion)            # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
+            (typ, msg_uids) = Obj.search(None, criterion)            # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
             # IMAP4.search(charset, criterion[, ...])，其第二个参数形状同status()第二个参数类似。
             # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None    
             # 同c.status()一样，其响应数据也是一个包含单个字节类型(即字符串前面标有b的前缀)字符串的列表，
             # 该字符串是一个由空格分隔的连续消息(邮件)ID组成。
             print('search_typ:', typ)
-            print('search_msg_ids[0]:', msg_ids[0])
+            print('search_msg_uids[0]:', msg_uids[0])
 
-            if not msg_ids[0]:
+            if not msg_uids[0]:
                 print("未搜索到符合条件的邮件！")
             else:
-                IDs = msg_ids[0].split()[::-1]
-                print("msg_ids[0]:",msg_ids[0])
-                print("msg_ids[0]:",IDs)
-                IDs = [id.decode("utf-8") for id in IDs ]
-                num = len(IDs)
-                IDs = ','.join(IDs)
-                print('IDs_str:', IDs, '\n')
-                print('按search条件搜索到的邮件总数：', num, '\n')
+                uids = msg_uids[0].split()[::-1]
+                print("msg_uids[0]:",msg_uids[0])
+                print("msg_uids[0]:",uids)
+                uids = [id.decode("utf-8") for id in uids ]
+                num = len(uids)
+                uids = ','.join(uids)
+                print('uids_str:', uids, '\n')
+                print('按search条件搜索到的邮件总数:', num, '\n')
 
-                # fetch messages
-                # (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = Obj.fetch(','.join(IDs), '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-                typ,              msg_data                     = Obj.fetch(IDs, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+# ----------------------------------- fetch messages ---------------------------------------
+
+                # (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = Obj.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                (  typ,                msg_data )                  = Obj.fetch(uids, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                 # OK  msg_data[0][0] msg_data[0][1]  msg_data[1]
                 #   b'1 (RFC822 {39944}'                b')'
                                                                 # 第二个项目fetch()[1]是一个含有两个元素的列表list,是响应数据msg_data。
@@ -147,14 +151,16 @@ def get_email(hostname, port, username, password, verbose=False):
                                                                     # 第二个项目的第二个元素是一个字节型字符串（ b')'）
                 # IMAP4.fetch(message_set, message_parts)取回（部分）信息。“message_ids” 参数是逗号分隔的 ID（例如 “ 1”，“ 1,2”” 或 ID 范围（例如 “ 1：2”）列表。 message_parts应该是一串括在圆括号内的消息部分名。，例如: "(UID BODY[TEXT])"。 返回的数据是由消息部分信封和数据组成的元组。
 
-            # ---------------------------------以上是imaplib的事，以下是email的事----------------------------------------------
-
+# ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                print('msg_data:', type(msg_data), len(msg_data))
+                print('msg_data[0]:', len(msg_data[0]))
+                print('msg_data[1]:', msg_data[1])
                 i = 0
                 for id, msgData_bytes in msg_data[::2]:             # 邮件id序列for循环
                     # 解析出邮件id以便回复邮件状态标志使用
                     uid = id.split()[0]
-                    print('uid:', uid)
-                    # print('msgData_bytes:', msgData_bytes)
+                    print('id:', id)
+                    print('msgData_bytes:', msgData_bytes)
 
                     # 获取消息对象
                     msgOjb = email.message_from_bytes(msgData_bytes)
@@ -170,7 +176,7 @@ def get_email(hostname, port, username, password, verbose=False):
                     Subject = header_decode(Subject)
 
                     i+=1
-                    print('id_'+str(i)+':', id, 'decoded Subject:', Subject)
+                    print('uids_'+str(i)+':', id, 'decoded Subject:', Subject)
 
                     if Subject is None:
                         # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
@@ -194,6 +200,7 @@ if __name__ == '__main__':
     passwords = config['account']['password'].split(',')
     exts = config['other']['exts'].split('|')
     savedir = config['other']['savedir']
+    days = int(config['other']['days'])
     
     for i in range(len(usernames)):
         get_email(hostname, port, usernames[i], passwords[i], verbose=False)
