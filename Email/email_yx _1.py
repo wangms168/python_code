@@ -132,7 +132,7 @@ def get_email(hostname, port, username, password, verbose=False):
 
 # ----------------------------------- fetch messages ---------------------------------------
             # 这是按search返回的消息uid列表进行for循环，fetch以单个uid进行获取消息；另外一种是fetch以uid列表字符串str形式获取消息，
-            # 其返回的元组的第二个项目是一个 num X 2 个元素的列表list，以msg_data[::2]形式切片形成的以num个”两个元素的列表“组成的长度为num的列表list,
+            # 其返回的元组的第二个项目是一个 num X 2 个元素的列表list，以msg_data[::2](正好跳过 b')' 这个元素)形式切片形成的以num个”两个元素的列表“组成的长度为num的列表list,
             i = 0
             for uid in uids:        
                 (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = Obj.fetch(uid, '(RFC822)')       # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；

@@ -137,7 +137,7 @@ def get_email(hostname, port, username, password, verbose=False):
 # ----------------------------------- fetch messages ---------------------------------------
 
                 # (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = Obj.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-                (  typ,                msg_data )                  = Obj.fetch(uids, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                (  typ,                msg_data  )                 = Obj.fetch(uids, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                 # OK  msg_data[0][0] msg_data[0][1]  msg_data[1]
                 #   b'1 (RFC822 {39944}'                b')'
                                                                 # 第二个项目fetch()[1]是一个含有两个元素的列表list,是响应数据msg_data。
@@ -152,15 +152,16 @@ def get_email(hostname, port, username, password, verbose=False):
                 # IMAP4.fetch(message_set, message_parts)取回（部分）信息。“message_ids” 参数是逗号分隔的 ID（例如 “ 1”，“ 1,2”” 或 ID 范围（例如 “ 1：2”）列表。 message_parts应该是一串括在圆括号内的消息部分名。，例如: "(UID BODY[TEXT])"。 返回的数据是由消息部分信封和数据组成的元组。
 
 # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
-                print('msg_data:', type(msg_data), len(msg_data))
-                print('msg_data[0]:', len(msg_data[0]))
+                # print('msg_data:', msg_data)
+                print('msg_data[0]:', msg_data[0])
                 print('msg_data[1]:', msg_data[1])
+                # print('msg_data[::2]:', len(msg_data[::2]))
                 i = 0
-                for id, msgData_bytes in msg_data[::2]:             # 邮件id序列for循环
+                for id, msgData_bytes in msg_data[::2]:     # (0,1,2,3,4,5,6,7,8,9) 从0号元素开始截取0、2、4、6、8号5个元素，对于msg_data列表来说，正好跳过1、3、5、7、9号是 b')' 右圆括号的元素。
                     # 解析出邮件id以便回复邮件状态标志使用
                     uid = id.split()[0]
                     print('id:', id)
-                    print('msgData_bytes:', msgData_bytes)
+                    # print('msgData_bytes:', msgData_bytes)
 
                     # 获取消息对象
                     msgOjb = email.message_from_bytes(msgData_bytes)
