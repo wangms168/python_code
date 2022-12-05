@@ -7,30 +7,33 @@
 import configparser, os
 from imaplib import IMAP4
 
-def create_imapObj(verbose=False):
-    config = configparser.ConfigParser()
-    config.read([os.path.expanduser('docs/config.cfg')], encoding='utf-8')
-    hostname = config['server']['hostname']
-    port = config['server']['port']
+def create_imapObj(hostname, port, username, password, verbose=False):
     if verbose:
         print('Connecting to', hostname, ':', port)
     imapObj = IMAP4(hostname, port)
-    username = config['account']['username']
-    password = config['account']['password']
     if verbose:
         print('Logging in as', username)
     try:
         imapObj.login(username, password)
-        print('Connect to {0}:{1} successfully'.format(hostname, port))
+        print('\nConnect to {0}:{1} successfully'.format(hostname, port))
         return imapObj
     except Exception as err:
         try:
-            print('Connect to {0}:{1} failed'.format(hostname, port), err)
+            print('\nConnect to {0}:{1} failed'.format(hostname, port), err)
         finally:
             err = None
             del err
 
 
 if __name__ == '__main__':
-    with create_imapObj(verbose=True) as (Obj):
-        print(Obj)
+    config = configparser.ConfigParser()
+    config.read([os.path.expanduser('docs/config.cfg')], encoding='utf-8')
+
+    hostname = config['server']['hostname']
+    port = config['server']['port']
+    usernames = config['account']['username'].split(',')
+    passwords = config['account']['password'].split(',')
+
+    for i in range(len(usernames)):
+        with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (Obj):
+             print(Obj)
