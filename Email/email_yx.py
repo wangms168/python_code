@@ -53,13 +53,51 @@ def get_att(Obj, uid, msg):
                 fp.write(part.get_payload(decode=True))
                 fp.close()
                 attachments.append(fileName)
-                print("下载了附件的uid========", uid)
+                print("下载了uid:" + str(uid) + "的附件。")
 
-                Obj.select('&bWZOHJT2iEw-', readonly=False)         # 以非只读方式select指定邮箱文件夹，此时，可改变标志flags     
+                Obj.select('&bWZOHJT2iEw-', readonly=False)         # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags     
                 Obj.store(uid, '+FLAGS', '\Seen')                   # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
 
     return attachments
 
+def do_msg(msgData_bytes, Obj, uid):
+    # 获取消息对象
+    msgOjb = email.message_from_bytes(msgData_bytes)
+    # email.message_from_bytes(s, _class=None, *, policy=policy.compat32)
+    # 从一个 bytes-like object 中返回消息对象。 这与 BytesParser().parsebytes(s) 等价。
+
+    # print('msgOjb.keys:', msgOjb.keys())           # msg.keys() https://stackoverflow.com/questions/703185/using-email-headerparser-with-imaplib-fetch-in-python
+
+    # 从消息对象中提取消息标头
+    Subject = msgOjb['Subject']
+
+    # 对消息标头进行解码
+    Subject = header_decode(Subject)
+
+    titles = config['other']['titles']
+    titles = titles.split('|')
+    for title in titles:
+        if title in Subject:
+            attachments = get_att(Obj, uid, msgOjb)
+            print('attachments:', attachments, '\n')
+            break           # 含有关键字一次即可
+
+    return Subject
+
+# (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = Obj.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+# (  typ,                msg_data  )                 = Obj.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+# OK  msg_data[0][0] msg_data[0][1]  msg_data[1]
+#   b'1 (RFC822 {39944}'                b')'
+#                                                 第二个项目fetch()[1]是一个含有两个元素的列表list,是响应数据msg_data。
+#                                                     第二个项目的第一个元素msg_data[0]是含有两个项目的tuple:
+#                                                         第一个项目msg_data[0][0]是一个字节类型字符串（b'1 (RFC822 {39944}'）
+#                                                         第二个项目msg_data[0][1]是一个含有真正大量消息数据的字节类型字符串
+#                                                             email.message_from_bytes(msg_data[0][1])就是从一个 bytes-like object 中返回消息对象message_ojb。 这与 BytesParser().parsebytes(s) 等价。
+#                                                             再从消息对象中获取get出各消息标头(<class 'str'>)
+#                                                             再用email.header.decode_header()在不转换字符集的情况下对消息标头值进行解码，返回仅含有一个(decoded_string, charset)这样元素的列表。
+#                                                             再对decoded_string进行str.decode(charset or "us-ascii")解码，至此解析解码完成。
+#                                                     第二个项目的第二个元素是一个字节型字符串（ b')'）
+# IMAP4.fetch(message_set, message_parts)取回（部分）信息。“message_ids” 参数是逗号分隔的 ID（例如 “ 1”，“ 1,2”” 或 ID 范围（例如 “ 1：2”）列表。 message_parts应该是一串括在圆括号内的消息部分名。，例如: "(UID BODY[TEXT])"。 返回的数据是由消息部分信封和数据组成的元组。
 
 def create_imapObj(hostname, port, username, password, verbose=False):
     if verbose:
@@ -106,14 +144,13 @@ def get_email(hostname, port, username, password, verbose=False):
             print("邮箱文件夹不存在")
         elif typ=='OK':
             msgs_num = int(msgsTotal_list[0])
-            print('There are {} messages in INBOX'.format(msgs_num))
+            print('There are {} messages in INBOX'.format(msgs_num), '\n')
 
 # ----------------------------------- search mail ---------------------------------------
         
             Date = date.today() - timedelta(days=days)
             Date = Date.strftime("%d-%b-%Y")
-            add = "ebank@eb.spdb.com.cn"
-            criterion = f'(SINCE {Date} FROM {add})'
+            criterion = f'(SINCE {Date} FROM {From})'
             (typ, msgsUids_list) = Obj.search(None, criterion)            # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
             # IMAP4.search(charset, criterion[, ...])，其第二个参数形状同status()第二个参数类似。
             # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None    
@@ -121,80 +158,72 @@ def get_email(hostname, port, username, password, verbose=False):
             # 该字符串是一个由空格分隔的连续消息(邮件)ID组成。
 
             print('search[typ]:', typ)
-            print('search[msgsUids_list]:', msgsUids_list)      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
+            print('search[msgsUids_list]:', msgsUids_list, '\n')      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
 
             if not msgsUids_list[0]:
                 print("未搜索到符合条件的邮件！")
             else:
-                uids_list = msgsUids_list[0].split()[::-1]
+                uids_list = msgsUids_list[0].split()[::-1]                                      # uids_list for循环，一个一个uid地fetch获取消息
                 num = len(uids_list)
-                print("uids_list:", uids_list, '\n')
+                print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')        
 
                 uids_str = msgsUids_list[0].decode("utf-8")     # Bytes to String
                 uids_str = uids_str.replace(' ', ',')
-                uids_byt = bytes(uids_str, "utf-8")             # String to Bytes
-                print("uids_byt:", uids_byt, '\n')
+                uids_byt = bytes(uids_str, "utf-8")             # String to Bytes               # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
+                print("由多个uid组成的uids_byt，一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
 
                 # uids = [id.decode("utf-8") for id in uids ]
                 # uids = ','.join(uids)
                 print('按search条件搜索到的邮件总数:', num, '\n')
 
 # ----------------------------------- fetch messages ---------------------------------------
-
-                # (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = Obj.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-                (  typ,                msg_data  )                 = Obj.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-                # OK  msg_data[0][0] msg_data[0][1]  msg_data[1]
-                #   b'1 (RFC822 {39944}'                b')'
-                                                                # 第二个项目fetch()[1]是一个含有两个元素的列表list,是响应数据msg_data。
-                                                                    # 第二个项目的第一个元素msg_data[0]是含有两个项目的tuple:
-                                                                        # 第一个项目msg_data[0][0]是一个字节类型字符串（b'1 (RFC822 {39944}'）
-                                                                        # 第二个项目msg_data[0][1]是一个含有真正大量消息数据的字节类型字符串
-                                                                            # email.message_from_bytes(msg_data[0][1])就是从一个 bytes-like object 中返回消息对象message_ojb。 这与 BytesParser().parsebytes(s) 等价。
-                                                                            # 再从消息对象中获取get出各消息标头(<class 'str'>)
-                                                                            # 再用email.header.decode_header()在不转换字符集的情况下对消息标头值进行解码，返回仅含有一个(decoded_string, charset)这样元素的列表。
-                                                                            # 再对decoded_string进行str.decode(charset or "us-ascii")解码，至此解析解码完成。
-                                                                    # 第二个项目的第二个元素是一个字节型字符串（ b')'）
-                # IMAP4.fetch(message_set, message_parts)取回（部分）信息。“message_ids” 参数是逗号分隔的 ID（例如 “ 1”，“ 1,2”” 或 ID 范围（例如 “ 1：2”）列表。 message_parts应该是一串括在圆括号内的消息部分名。，例如: "(UID BODY[TEXT])"。 返回的数据是由消息部分信封和数据组成的元组。
+                # 这是按search返回的消息uid列表进行for循环，fetch以单个uid进行获取消息；另外一种是fetch以uid列表字符串str形式获取消息，
+                # 其返回的元组的第二个项目是一个 num X 2 个元素的列表list，以msg_data[::2](正好跳过 b')' 这个元素)形式切片形成的以num个”两个元素的列表“组成的长度为num的列表list,
+                if sinflags == True:            # 单个模式fetch
+                    i = 0
+                    for uid_byt in uids_list:
+                        (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = Obj.fetch(uid_byt, '(RFC822)')       # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                        print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
 # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
-                # print('msg_data:', msg_data)
-                # print('msg_data[0]:', msg_data[0])
-                # print('msg_data[1]:', msg_data[1])
-                # print('msg_data[::2]:', len(msg_data[::2]))
-                i = 0
-                for id, msgData_bytes in msg_data[::2]:     # (0,1,2,3,4,5,6,7,8,9) 从0号元素开始截取0、2、4、6、8号5个元素，对于msg_data列表来说，正好跳过1、3、5、7、9号是 b')' 右圆括号的元素。
-                    # 解析出邮件id以便回复邮件状态标志使用
-                    uid = id.split()[0]
-                    print('id:', id)
-                    # print('msgData_bytes:', msgData_bytes)
+                        if typ == 'NO':
+                            print("获取uid="+ uid_byt +"的消息失败！")
+                        elif typ == 'OK':
+                            # for id, msgData_bytes in msg_data[::2]:             # 邮件id序列for循环
+                            # 解析出邮件id以便回复邮件状态标志使用
+                            # uid = id.split()[0]
+                            # print('uid:', uid)
+                            Subject = do_msg(msgData_bytes, Obj, uid_byt)
+                            i+=1
+                            print('uid_'+str(i)+':', uid_byt, 'decoded Subject:', Subject)
 
-                    # 获取消息对象
-                    msgOjb = email.message_from_bytes(msgData_bytes)
-                    # email.message_from_bytes(s, _class=None, *, policy=policy.compat32)
-                    # 从一个 bytes-like object 中返回消息对象。 这与 BytesParser().parsebytes(s) 等价。
+                            # if Subject is None:
+                            #     # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
+                            #     continue
 
-                    # print('msgOjb.keys:', msgOjb.keys())           # msg.keys() https://stackoverflow.com/questions/703185/using-email-headerparser-with-imaplib-fetch-in-python
 
-                    # 从消息对象中提取消息标头
-                    Subject = msgOjb['Subject']
+                elif sinflags == False:          # 批量模式fetch
+                    (typ, msg_data) = Obj.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                    # print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
-                    # 对消息标头进行解码
-                    Subject = header_decode(Subject)
+    # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                    if typ == 'NO':
+                        print("获取uid="+ uid +"的消息失败！")
+                    elif typ == 'OK':
+                        i = 0
+                        for uid, msgData_bytes in msg_data[::2]:     # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。 (0,1,2,3,4,5,6,7,8,9) 从0号元素开始截取0、2、4、6、8号5个元素，对于msg_data列表来说，正好跳过1、3、5、7、9号是 b')' 右圆括号的元素。
+                            # 解析出邮件id以便回复邮件状态标志使用
+                            uid = uid.split()[0]
+                            print('uid:', uid)
+                            # print('msgData_bytes:', msgData_bytes)
 
-                    i+=1
-                    print('uids_'+str(i)+':', id, 'decoded Subject:', Subject)
+                            Subject = do_msg(msgData_bytes, Obj, uid)
+                            i+=1
+                            print('uid_'+str(i)+':', uid, 'decoded Subject:', Subject)
 
-                    if Subject is None:
-                        # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
-                        continue
-
-                    titles = config['other']['titles']
-                    titles = titles.split('|')
-                    for title in titles:
-                        if title in Subject:
-                            attachments = get_att(Obj, uid, msgOjb)
-                            print('attachments:', attachments, '\n')
-                            break           # 含有关键字一次即可
+                            # if Subject is None:
+                            #     # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
+                            #     continue
 
 if __name__ == '__main__':
     start_time= time.time()
@@ -207,7 +236,17 @@ if __name__ == '__main__':
     exts = config['other']['exts'].split('|')
     savedir = config['other']['savedir']
     days = int(config['other']['days'])
-    
+    From = config['other']['From']
+    sinflags = config['other']['sinflags']
+    sinflags = True if sinflags.lower() == 'true' else False        # str to bool
+    mode = ""
+    if sinflags == True:
+        mode = "单个模式"
+    elif sinflags == False:
+        mode = "批量模式"
+    else:
+        print("未选定好模式")
+
     for i in range(len(usernames)):
         get_email(hostname, port, usernames[i], passwords[i], verbose=False)
-    print("耗时：", time.time()-start_time)   
+    print(mode + "耗时：", time.time()-start_time)   
