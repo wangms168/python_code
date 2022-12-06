@@ -118,9 +118,7 @@ def create_imapObj(hostname, port, username, password, verbose=False):
             del err
 
 def get_email(hostname, port, username, password, verbose=False):
-
     with create_imapObj(hostname, port, username, password, verbose=False) as Obj:
-
 # ----------------------------------- folder list ---------------------------------------
         
         (typ, mbox_list) = Obj.list()
@@ -142,7 +140,7 @@ def get_email(hostname, port, username, password, verbose=False):
         print('select[typ]:', typ)
         print('select[msgsTotal_list]:', msgsTotal_list)
         if typ=='NO':
-            print("邮箱文件夹不存在")
+            print("邮箱文件夹不存在\n\n")
         elif typ=='OK':
             msgs_num = int(msgsTotal_list[0])
             print('There are {} messages in INBOX'.format(msgs_num), '\n')
@@ -159,19 +157,19 @@ def get_email(hostname, port, username, password, verbose=False):
             # 该字符串是一个由空格分隔的连续消息(邮件)ID组成。
 
             print('search[typ]:', typ)
-            print('search[msgsUids_list]:', msgsUids_list, '\n')      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
+            # print('search[msgsUids_list]:', msgsUids_list, '\n')      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
 
             if not msgsUids_list[0]:
                 print("未搜索到符合条件的邮件！")
             else:
                 uids_list = msgsUids_list[0].split()                                      # [::-1]列表翻转这里没使用。 uids_list for循环，一个一个uid地fetch获取消息
                 num = len(uids_list)
-                print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')        
+                # print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')        
 
                 uids_str = msgsUids_list[0].decode("utf-8")     # Bytes to String
                 uids_str = uids_str.replace(' ', ',')
                 uids_byt = bytes(uids_str, "utf-8")             # String to Bytes               # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
-                print("由多个uid组成的uids_byt,一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
+                # print("由多个uid组成的uids_byt,一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
 
                 print('按search条件搜索到的邮件总数:', num, '\n')
 
@@ -220,9 +218,7 @@ if __name__ == '__main__':
     days = int(config['other']['days'])
     From = config['other']['From']
     sinflags = config['other']['sinflags']
-    print('sinflags_ori:', sinflags)
     sinflags = True if sinflags.lower() == 'true' else False        # str to bool
-    print('sinflags:', sinflags)
     mode = ""
     if sinflags == True:
         mode = "单个模式"
@@ -233,4 +229,5 @@ if __name__ == '__main__':
 
     for i in range(len(usernames)):
         get_email(hostname, port, usernames[i], passwords[i], verbose=False)
-    print(mode + "耗时：", time.time()-start_time)   
+    
+    print(f'{mode}fetch，共耗时{time.time()-start_time}')   
