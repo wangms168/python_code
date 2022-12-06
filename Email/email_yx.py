@@ -57,6 +57,7 @@ def get_att(Obj, uid, msg):
 
                 Obj.select('&bWZOHJT2iEw-', readonly=False)         # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags     
                 Obj.store(uid, '+FLAGS', '\Seen')                   # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
+                # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
 
     return attachments
 
@@ -79,7 +80,7 @@ def do_msg(msgData_bytes, Obj, uid):
     for title in titles:
         if title in Subject:
             attachments = get_att(Obj, uid, msgOjb)
-            print('attachments:', attachments, '\n')
+            print('attachments:', attachments)
             break           # 含有关键字一次即可
 
     return Subject
@@ -163,68 +164,49 @@ def get_email(hostname, port, username, password, verbose=False):
             if not msgsUids_list[0]:
                 print("未搜索到符合条件的邮件！")
             else:
-                uids_list = msgsUids_list[0].split()[::-1]                                      # uids_list for循环，一个一个uid地fetch获取消息
+                uids_list = msgsUids_list[0].split()                                      # [::-1]列表翻转这里没使用。 uids_list for循环，一个一个uid地fetch获取消息
                 num = len(uids_list)
                 print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')        
 
                 uids_str = msgsUids_list[0].decode("utf-8")     # Bytes to String
                 uids_str = uids_str.replace(' ', ',')
                 uids_byt = bytes(uids_str, "utf-8")             # String to Bytes               # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
-                print("由多个uid组成的uids_byt，一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
+                print("由多个uid组成的uids_byt,一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
 
-                # uids = [id.decode("utf-8") for id in uids ]
-                # uids = ','.join(uids)
                 print('按search条件搜索到的邮件总数:', num, '\n')
 
 # ----------------------------------- fetch messages ---------------------------------------
-                # 这是按search返回的消息uid列表进行for循环，fetch以单个uid进行获取消息；另外一种是fetch以uid列表字符串str形式获取消息，
-                # 其返回的元组的第二个项目是一个 num X 2 个元素的列表list，以msg_data[::2](正好跳过 b')' 这个元素)形式切片形成的以num个”两个元素的列表“组成的长度为num的列表list,
+            # ===============================================================================
                 if sinflags == True:            # 单个模式fetch
                     i = 0
                     for uid_byt in uids_list:
                         (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = Obj.fetch(uid_byt, '(RFC822)')       # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                         print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
-# ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
                         if typ == 'NO':
-                            print("获取uid="+ uid_byt +"的消息失败！")
+                            print("单个获取uid_byt="+ uid_byt +"的消息失败！")
                         elif typ == 'OK':
-                            # for id, msgData_bytes in msg_data[::2]:             # 邮件id序列for循环
-                            # 解析出邮件id以便回复邮件状态标志使用
-                            # uid = id.split()[0]
-                            # print('uid:', uid)
                             Subject = do_msg(msgData_bytes, Obj, uid_byt)
                             i+=1
-                            print('uid_'+str(i)+':', uid_byt, 'decoded Subject:', Subject)
+                            print('uid_'+str(i)+':', uid_byt, 'decoded Subject:', Subject, '\n')
 
-                            # if Subject is None:
-                            #     # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
-                            #     continue
-
-
+            # ===============================================================================
                 elif sinflags == False:          # 批量模式fetch
                     (typ, msg_data) = Obj.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                     # print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
-# ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
                     if typ == 'NO':
-                        print("获取uid="+ uid +"的消息失败！")
+                        print("批量获取uids_byt="+ uids_byt +"的消息失败！")
                     elif typ == 'OK':
                         i = 0
-                        for uid, msgData_bytes in msg_data[::2]:     # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。 (0,1,2,3,4,5,6,7,8,9) 从0号元素开始截取0、2、4、6、8号5个元素，对于msg_data列表来说，正好跳过1、3、5、7、9号是 b')' 右圆括号的元素。
-                            # 解析出邮件id以便回复邮件状态标志使用
-                            uid = uid.split()[0]
-                            print('uid:', uid)
-                            # print('msgData_bytes:', msgData_bytes)
-
-                            Subject = do_msg(msgData_bytes, Obj, uid)
+                        for uid, msgData_bytes in msg_data[::2]:     # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。
+                            uid_byt = uid.split()[0]
+                            Subject = do_msg(msgData_bytes, Obj, uid_byt)
                             i+=1
-                            print('uid_'+str(i)+':', uid, 'decoded Subject:', Subject)
-
-                            # if Subject is None:
-                            #     # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
-                            #     continue
-
+                            print('uid_'+str(i)+':', uid_byt, 'decoded Subject:', Subject, '\n')
+ 
 if __name__ == '__main__':
     start_time= time.time()
     config = configparser.ConfigParser()
@@ -238,7 +220,9 @@ if __name__ == '__main__':
     days = int(config['other']['days'])
     From = config['other']['From']
     sinflags = config['other']['sinflags']
+    print('sinflags_ori:', sinflags)
     sinflags = True if sinflags.lower() == 'true' else False        # str to bool
+    print('sinflags:', sinflags)
     mode = ""
     if sinflags == True:
         mode = "单个模式"
