@@ -84,28 +84,28 @@ def get_email(hostname, port, username, password, verbose=False):
 
 # ----------------------------------- folder list ---------------------------------------
         
-        typ, mbox_data = Obj.list()
+        (typ, mbox_list) = Obj.list()
+        # print('select[typ]:', typ)
+        # pprint(mbox_list)
         mbox_name_list = []
-        for line in mbox_data:
+        for line in mbox_list:
             flags, delimiter, mbox_name = folder_parse(line)
             mbox_name_list.append(mbox_name)
-        # pprint(mbox_name_list)
 
 # ----------------------------------- select folder ---------------------------------------
         
-        # typ, data = Obj.select('"{}"'.format(mbox_name_list[0]), readonly=True)
-        (typ, data) = Obj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
-        # typ, data = Obj.select('INBOX', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+        (typ, msgsTotal_list) = Obj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+        # (typ, msgs_total) = Obj.select('INBOX', readonly=True)                # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
         # IMAP4.select(mailbox='INBOX', readonly=False)
         # 选择一个邮箱。 返回的数据是 mailbox 中消息的数量 (EXISTS 响应)               
-        # typ 同样是响应代码；响应数据 data 是一个包含单个字节类型字符串的列表，该单个字符串包含邮箱中的邮件总数。
+        # typ 同样是响应代码；响应数据 msgs_total是一个包含单个字节类型字符串的列表，该单个字符串包含邮箱中的邮件总数。
 
-        print('select_typ:',  typ)
-        print('select_data:', bytes.decode(data[0]))
+        print('select[typ]:', typ)
+        print('select[msgsTotal_list]:', msgsTotal_list)
         if typ=='NO':
             print("邮箱文件夹不存在")
         elif typ=='OK':
-            msgs_num = int(data[0])
+            msgs_num = int(msgsTotal_list[0])
             print('There are {} messages in INBOX'.format(msgs_num))
 
 # ----------------------------------- search mail ---------------------------------------
@@ -114,30 +114,35 @@ def get_email(hostname, port, username, password, verbose=False):
             Date = Date.strftime("%d-%b-%Y")
             add = "ebank@eb.spdb.com.cn"
             criterion = f'(SINCE {Date} FROM {add})'
-            (typ, msg_uids) = Obj.search(None, criterion)            # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
+            (typ, msgsUids_list) = Obj.search(None, criterion)            # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
             # IMAP4.search(charset, criterion[, ...])，其第二个参数形状同status()第二个参数类似。
             # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None    
             # 同c.status()一样，其响应数据也是一个包含单个字节类型(即字符串前面标有b的前缀)字符串的列表，
             # 该字符串是一个由空格分隔的连续消息(邮件)ID组成。
-            print('search_typ:', typ)
-            print('search_msg_uids[0]:', msg_uids[0])
 
-            if not msg_uids[0]:
+            print('search[typ]:', typ)
+            print('search[msgsUids_list]:', msgsUids_list)      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
+
+            if not msgsUids_list[0]:
                 print("未搜索到符合条件的邮件！")
             else:
-                uids = msg_uids[0].split()[::-1]
-                print("msg_uids[0]:",msg_uids[0])
-                print("msg_uids[0]:",uids)
-                uids = [id.decode("utf-8") for id in uids ]
-                num = len(uids)
-                uids = ','.join(uids)
-                print('uids_str:', uids, '\n')
+                uids_list = msgsUids_list[0].split()[::-1]
+                num = len(uids_list)
+                print("uids_list:", uids_list, '\n')
+
+                uids_str = msgsUids_list[0].decode("utf-8")     # Bytes to String
+                uids_str = uids_str.replace(' ', ',')
+                uids_byt = bytes(uids_str, "utf-8")             # String to Bytes
+                print("uids_byt:", uids_byt, '\n')
+
+                # uids = [id.decode("utf-8") for id in uids ]
+                # uids = ','.join(uids)
                 print('按search条件搜索到的邮件总数:', num, '\n')
 
 # ----------------------------------- fetch messages ---------------------------------------
 
                 # (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = Obj.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-                (  typ,                msg_data  )                 = Obj.fetch(uids, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                (  typ,                msg_data  )                 = Obj.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                 # OK  msg_data[0][0] msg_data[0][1]  msg_data[1]
                 #   b'1 (RFC822 {39944}'                b')'
                                                                 # 第二个项目fetch()[1]是一个含有两个元素的列表list,是响应数据msg_data。
@@ -153,8 +158,8 @@ def get_email(hostname, port, username, password, verbose=False):
 
 # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
                 # print('msg_data:', msg_data)
-                print('msg_data[0]:', msg_data[0])
-                print('msg_data[1]:', msg_data[1])
+                # print('msg_data[0]:', msg_data[0])
+                # print('msg_data[1]:', msg_data[1])
                 # print('msg_data[::2]:', len(msg_data[::2]))
                 i = 0
                 for id, msgData_bytes in msg_data[::2]:     # (0,1,2,3,4,5,6,7,8,9) 从0号元素开始截取0、2、4、6、8号5个元素，对于msg_data列表来说，正好跳过1、3、5、7、9号是 b')' 右圆括号的元素。
