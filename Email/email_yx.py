@@ -206,7 +206,7 @@ def get_email(hostname, port, username, password, verbose=False):
                     (typ, msg_data) = Obj.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                     # print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
-    # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+# ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
                     if typ == 'NO':
                         print("获取uid="+ uid +"的消息失败！")
                     elif typ == 'OK':
