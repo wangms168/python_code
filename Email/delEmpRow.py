@@ -1,15 +1,14 @@
 import os
-# from win32com.client import Dispatch, constants
-from win32com import client as com
-from win32com.client import constants
+from win32com.client import Dispatch, constants
+# from win32com import client as com
 
 
 class easyExcel:
 
     # 初始化excel
     def __init__(self, filename=None):
-        # self.xlApp = Dispatch('Excel.Application')
-        self.xlApp = com.gencache.EnsureDispatch('excel.application')
+        self.xlApp = Dispatch('Excel.Application')
+        # self.xlApp = com.gencache.EnsureDispatch('excel.application')
         self.xlApp.Visible = False
         self.xlApp.DisplayAlerts = False
         if filename:
