@@ -30,7 +30,7 @@ def get_att(imapObj, uid, msg):
             continue
         fileName = part.get_filename()
         fileName = header_decode(fileName)
-        print('fileName', fileName)
+        # print('fileName', fileName)
 
         # 只获取指定拓展名的附件
         extension = os.path.splitext(os.path.split(fileName)[1])[1]
@@ -40,9 +40,10 @@ def get_att(imapObj, uid, msg):
         # 如果获取到了文件，则将文件保存在指定的目录下
         if fileName:
             filePath = os.path.join(savedir, fileName)
-            print('filePath:', filePath)
+            # print('filePath:', filePath)
             if os.path.isfile(filePath):
-                print("文件已存在，不下载啦！")
+                pass
+                # print("文件已存在，不下载啦！")
             else:
                 if not os.path.exists(savedir):
                     os.makedirs(savedir)
@@ -50,10 +51,10 @@ def get_att(imapObj, uid, msg):
                 fp.write(part.get_payload(decode=True))
                 fp.close()
                 attachments.append(fileName)
-                print("下载了uid:" + str(uid) + "的附件。")
+                # print("下载了uid:" + str(uid) + "的附件。")
 
-                imapObj.select('&bWZOHJT2iEw-',
-                               readonly=False)  # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
+                imapObj.select('&bWZOHJT2iEw-', readonly=False)
+                # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
                 imapObj.store(uid, '+FLAGS', '\\Seen')  # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
                 # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
 
@@ -78,7 +79,7 @@ def do_msg(msgData_bytes, imapObj, uid):
     for title in titles:
         if title in Subject:
             attachments = get_att(imapObj, uid, msgOjb)
-            print('attachments:', attachments)
+            # print('attachments:', attachments)
             break  # 含有关键字一次即可
 
     return Subject
@@ -120,26 +121,28 @@ def get_email(hostname, port, username, password):
     with create_imapObj(hostname, port, username, password, verbose=False) as imapObj:
         # ----------------------------------- folder list ---------------------------------------
 
-        (typ, mbox_list) = imapObj.list()
+        (typ, mbfolder_list) = imapObj.list()
         # print('select[typ]:', typ)
-        # pprint(mbox_list)
-        mbox_name_list = []
-        for line in mbox_list:
-            flags, delimiter, mbox_name = folder_parse(line)
-            mbox_name_list.append(mbox_name)
+        # pprint(mbfolder_list)
+        mbfolder_name_list = []
+        for line in mbfolder_list:
+            flags, delimiter, mbfolder_name = folder_parse(line)
+            mbfolder_name_list.append(mbfolder_name)
 
         # ----------------------------------- select folder ---------------------------------------
-        for mbox in mboxs:
-            (typ, msgsTotal_list) = imapObj.select(mbox,
-                                                   readonly=True)  # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+        for mbfolder in mbfolders:
+            b_mbfolder = mbfolder.encode('utf-7')
+            b_mbfolder = b_mbfolder.replace(b'+', b'&')
+            s_mbfolder = b_mbfolder.decode('utf-8')
+            (typ, msgsTotal_list) = imapObj.select(s_mbfolder, readonly=True)  # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # (typ, msgsTotal_list) = imapObj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # (typ, msgs_total) = imapObj.select('INBOX', readonly=True)                # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # IMAP4.select(mailbox='INBOX', readonly=False)
-            # 选择一个邮箱。 返回的数据是 mailbox 中消息的数量 (EXISTS 响应)               
+            # 选择一个邮箱。 返回的数据是 mailbox 中消息的数量 (EXISTS 响应)
             # typ 同样是响应代码；响应数据 msgs_total是一个包含单个字节类型字符串的列表，该单个字符串包含邮箱中的邮件总数。
 
-            print('"' + mbox + '"' + 'select[typ]:', typ)
-            print('"' + mbox + '"' + 'select[msgsTotal_list]:', msgsTotal_list)
+            print('"' + mbfolder + '"' + 'select[typ]:', typ)
+            print('"' + mbfolder + '"' + 'select[msgsTotal_list]:', msgsTotal_list)
             if typ == 'NO':
                 print("邮箱文件夹不存在\n\n")
             elif typ == 'OK':
@@ -152,15 +155,14 @@ def get_email(hostname, port, username, password):
                 Date = Date.strftime("%d-%b-%Y")
                 # criterion = f'(SINCE {Date} FROM {From})'
                 criterion = f'(SINCE {Date})'
-                (typ, msgsUids_list) = imapObj.search(None,
-                                                      criterion)  # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
+                (typ, msgsUids_list) = imapObj.search(None, criterion)# 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
                 # status, message = imapObj.search(None, 'OR FROM "ooxx@fuck.com"', 'SUBJECT "测试"'.encode('utf-8'))
                 # IMAP4.search(charset, criterion[, ...])，其第二个参数形状同status()第二个参数类似。
-                # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None    
+                # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None
                 # 同c.status()一样，其响应数据也是一个包含单个字节类型(即字符串前面标有b的前缀)字符串的列表，
                 # 该字符串是一个由空格分隔的连续消息(邮件)ID组成。
 
-                print('"' + mbox + '"' + 'search[typ]:', typ)
+                print('"' + mbfolder + '"' + 'search[typ]:', typ)
                 # print('search[msgsUids_list]:', msgsUids_list, '\n')      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
 
                 if not msgsUids_list[0]:
@@ -168,7 +170,7 @@ def get_email(hostname, port, username, password):
                 else:
                     uids_list = msgsUids_list[0].split()  # [::-1]列表翻转这里没使用。 uids_list for循环，一个一个uid地fetch获取消息
                     num = len(uids_list)
-                    # print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')        
+                    # print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')
 
                     uids_byt = msgsUids_list[0].replace(b' ', b',')  # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
                     # print("由多个uid组成的uids_byt,一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
@@ -188,9 +190,9 @@ def get_email(hostname, port, username, password):
                             if typ == 'NO':
                                 print("单个获取uid_byt=" + uid_byt + "的消息失败！")
                             elif typ == 'OK':
-                                Subject = do_msg(msgData_bytes, imapObj, uid_byt)
+                                # Subject = do_msg(msgData_bytes, imapObj, uid_byt)
                                 i += 1
-                                print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
+                                # print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
 
                     # ===============================================================================
                     elif not sinflags:  # 批量模式fetch
@@ -206,9 +208,9 @@ def get_email(hostname, port, username, password):
                             for uid, msgData_bytes in msg_data[
                                                       ::2]:  # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。
                                 uid_byt = uid.split()[0]
-                                Subject = do_msg(msgData_bytes, imapObj, uid_byt)
+                                # Subject = do_msg(msgData_bytes, imapObj, uid_byt)
                                 i += 1
-                                print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
+                                # print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
 
 
 if __name__ == '__main__':
@@ -219,7 +221,7 @@ if __name__ == '__main__':
     Port = config['server']['port']
     usernames = config['account']['username'].split(',')
     passwords = config['account']['password'].split(',')
-    mboxs = config['other']['mboxs'].split('|')
+    mbfolders = config['other']['mbfolders'].split(',')
     titles = config['other']['titles'].split(',')
     exts = config['other']['exts'].split('|')
     savedir = config['other']['savedir']
