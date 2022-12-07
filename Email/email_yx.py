@@ -58,7 +58,7 @@ def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject):
                 imapObj.select(s_mbfolder, readonly=False)  # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
                 imapObj.store(uid, '+FLAGS', '\\Seen')  # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
             if mbfolder == '浦东银行':
-                filePath = os.path.abspath(filePath)  # win32不认识相对路径，故需转换为绝对路径。
+                filePath = os.path.abspath(filePath)  # win32com不认识相对路径，故需转换为绝对路径。
                 doExcel(filePath)
 
     return attachments

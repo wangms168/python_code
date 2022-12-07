@@ -75,7 +75,6 @@ def forExcel(path):
 
 
 def doExcel(xlfile):
-    print('文件名', xlfile)
     excel = easyExcel(xlfile)
     shtCount, shtList = excel.getSheets()
     print('shtCount', shtCount)
