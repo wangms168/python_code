@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from imaplib import IMAP4
 
 from imaplib_folder_parse import folder_parse
+from delEmpRow import doExcel
 
 
 def header_decode(header):
@@ -46,8 +47,8 @@ def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject):
             if os.path.isfile(filePath):
                 print("文件已存在，不下载啦！")
             else:
-                if not os.path.exists(savedir+mbfolder):
-                    os.makedirs(savedir+mbfolder)
+                if not os.path.exists(savedir + mbfolder):
+                    os.makedirs(savedir + mbfolder)
                 fp = open(filePath, 'wb')
                 fp.write(part.get_payload(decode=True))
                 fp.close()
@@ -56,6 +57,9 @@ def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject):
 
                 imapObj.select(s_mbfolder, readonly=False)  # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
                 imapObj.store(uid, '+FLAGS', '\\Seen')  # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
+            if mbfolder == '浦东银行':
+                filePath = os.path.abspath(filePath)  # win32不认识相对路径，故需转换为绝对路径。
+                doExcel(filePath)
 
     return attachments
 
@@ -134,7 +138,8 @@ def get_email(hostname, port, username, password):
             b_mbfolder = b_mbfolder.replace(b'+', b'&')
             s_mbfolder = b_mbfolder.decode('utf-8')
             print('b_mbfolder:', b_mbfolder, s_mbfolder)
-            (typ, msgsTotal_list) = imapObj.select(s_mbfolder, readonly=True)  # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+            (typ, msgsTotal_list) = imapObj.select(s_mbfolder,
+                                                   readonly=True)  # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # (typ, msgsTotal_list) = imapObj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # (typ, msgs_total) = imapObj.select('INBOX', readonly=True)                # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # IMAP4.select(mailbox='INBOX', readonly=False)
@@ -155,7 +160,7 @@ def get_email(hostname, port, username, password):
                 Date = Date.strftime("%d-%b-%Y")
                 # criterion = f'(SINCE {Date} FROM {From})'
                 criterion = f'(SINCE {Date})'
-                (typ, msgsUids_list) = imapObj.search(None, criterion)# 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
+                (typ, msgsUids_list) = imapObj.search(None, criterion)  # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
                 # status, message = imapObj.search(None, 'OR FROM "ooxx@fuck.com"', 'SUBJECT "测试"'.encode('utf-8'))
                 # IMAP4.search(charset, criterion[, ...])，其第二个参数形状同status()第二个参数类似。
                 # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None

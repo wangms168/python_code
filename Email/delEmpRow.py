@@ -9,7 +9,6 @@ class easyExcel:
     # 初始化excel
     def __init__(self, filename=None):
         # self.xlApp = Dispatch('Excel.Application')
-
         self.xlApp = com.gencache.EnsureDispatch('excel.application')
         self.xlApp.Visible = False
         self.xlApp.DisplayAlerts = False
@@ -98,6 +97,6 @@ def doExcel(xlfile):
 if __name__ == '__main__':
     Path = r'E:\202211利率IRS互换日结单-浦发银行'
     xlFile = r'E:\202211利率IRS互换日结单-浦发银行\IRS客户日结单_20221124_0003321_6.xlsx'
-    # forExcel(Path)
-    doExcel(xlFile)
+    forExcel(Path)
+    # doExcel(xlFile)
     print('执行完毕！')
