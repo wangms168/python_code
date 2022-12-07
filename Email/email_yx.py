@@ -1,6 +1,5 @@
 import configparser
 import email
-import email.parser
 import os
 import time
 from datetime import date, timedelta
