@@ -183,8 +183,8 @@ def get_email(hostname, port, username, password):
                     if sinflags:  # 单个模式fetch
                         i = 0
                         for uid_byt in uids_list:
-                            (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = imapObj.fetch(uid_byt,
-                                                                                             '(RFC822)')  # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                            (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = imapObj.fetch(uid_byt, '(RFC822)')
+                            # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                             print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
                             # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
