@@ -4,8 +4,10 @@
 # Embedded file name: e:\python_code\Email\imaplib_imapObj.py
 # Compiled at: 2022-12-04 12:15:40
 # Size of source mod 2**32: 1238 bytes
-import configparser, os
+import configparser
+import os
 from imaplib import IMAP4
+
 
 def create_imapObj(hostname, port, username, password, verbose=False):
     if verbose:
@@ -21,11 +23,10 @@ def create_imapObj(hostname, port, username, password, verbose=False):
         try:
             print('\nConnect to {0}:{1} failed'.format(hostname, port), err)
         finally:
-            err = None
             del err
 
 
-if __name__ == '__main__':
+def main():
     config = configparser.ConfigParser()
     config.read([os.path.expanduser('docs/config.cfg')], encoding='utf-8')
 
@@ -36,4 +37,8 @@ if __name__ == '__main__':
 
     for i in range(len(usernames)):
         with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (Obj):
-             print(Obj)
+            print(Obj)
+
+
+if __name__ == '__main__':
+    main()

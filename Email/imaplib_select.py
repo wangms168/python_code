@@ -16,8 +16,8 @@ usernames = config['account']['username'].split(',')
 passwords = config['account']['password'].split(',')
 
 for i in range(len(usernames)):
-    with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (Obj):
-        typ, data = Obj.select('INBOX')
+    with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (imapObj):
+        typ, data = imapObj.select('INBOX')
         # IMAP4.select(mailbox='INBOX', readonly=False)
         # 选择一个邮箱。 返回的数据是 mailbox 中消息的数量 (EXISTS 响应)               
         # typ 同样是响应代码；响应数据 data 是一个包含单个字符串的列表，该单个字符串包含邮箱中的邮件总数。

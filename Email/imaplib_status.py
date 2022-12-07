@@ -1,6 +1,8 @@
-import configparser, os
-from imaplib_imapobj import create_imapObj
+import configparser
+import os
+
 from imaplib_folder_parse import folder_parse
+from imaplib_imapobj import create_imapObj
 
 config = configparser.ConfigParser()
 config.read([os.path.expanduser('docs/config.cfg')], encoding='utf-8')
@@ -11,12 +13,12 @@ usernames = config['account']['username'].split(',')
 passwords = config['account']['password'].split(',')
 
 for i in range(len(usernames)):
-    with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (Obj):
-        typ, data = Obj.list()
+    with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (imapObj):
+        typ, data = imapObj.list()
         for line in data:
             flags, delimiter, mailbox = folder_parse(line)
             print('Mailbox:', mailbox)
-            status = Obj.status(                                      
+            status = imapObj.status(
                 '"{}"'.format(mailbox),
                 '(MESSAGES RECENT UIDNEXT UIDVALIDITY UNSEEN)',
             )

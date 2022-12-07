@@ -1,8 +1,8 @@
-import configparser, os
-from imaplib_imapobj import create_imapObj
-
-import email
+import configparser
 import email.parser
+import os
+
+from imaplib_imapobj import create_imapObj
 
 config = configparser.ConfigParser()
 config.read([os.path.expanduser('docs/config.cfg')], encoding='utf-8')

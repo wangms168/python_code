@@ -1,17 +1,13 @@
 import configparser
-import time
-from datetime import date, timedelta
-import os
-from imaplib import IMAP4
-# from imaplib_imapobj import create_imapObj
-from imaplib_folder_parse import folder_parse
-from pprint import pprint
-
 import email
 import email.parser
+import os
+import time
+from datetime import date, timedelta
+from imaplib import IMAP4
 
-config = configparser.ConfigParser()
-config.read([os.path.expanduser('docs/config.cfg')] ,encoding='utf-8')
+from imaplib_folder_parse import folder_parse
+
 
 def header_decode(header):
     [(text, encoding)] = email.header.decode_header(header)
@@ -21,7 +17,8 @@ def header_decode(header):
         text = text.decode(encoding or "us-ascii")
     return text
 
-def get_att(imap_object, uid, msg):       
+
+def get_att(imapObj, uid, msg, exts, savedir):
     """
     下载邮件中的附件
     """
@@ -55,19 +52,22 @@ def get_att(imap_object, uid, msg):
                 attachments.append(fileName)
                 print("下载了uid:" + str(uid) + "的附件。")
 
-                imap_object.select('&bWZOHJT2iEw-', readonly=False)         # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags     
-                imap_object.store(uid, '+FLAGS', '\Seen')                   # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
+                imapObj.select('&bWZOHJT2iEw-',
+                               readonly=False)  # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
+                imapObj.store(uid, '+FLAGS', '\\Seen')  # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
                 # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
 
     return attachments
 
-def do_msg(msgData_bytes, imap_object, uid):
+
+def do_msg(msgData_bytes, imapObj, uid, titles, exts, savedir):
     # 获取消息对象
     msgOjb = email.message_from_bytes(msgData_bytes)
     # email.message_from_bytes(s, _class=None, *, policy=policy.compat32)
     # 从一个 bytes-like object 中返回消息对象。 这与 BytesParser().parsebytes(s) 等价。
 
-    # print('msgOjb.keys:', msgOjb.keys())           # msg.keys() https://stackoverflow.com/questions/703185/using-email-headerparser-with-imaplib-fetch-in-python
+    # print('msgOjb.keys:', msgOjb.keys())
+    # msg.keys() https://stackoverflow.com/questions/703185/using-email-headerparser-with-imaplib-fetch-in-python
 
     # 从消息对象中提取消息标头
     Subject = msgOjb['Subject']
@@ -77,14 +77,15 @@ def do_msg(msgData_bytes, imap_object, uid):
 
     for title in titles:
         if title in Subject:
-            attachments = get_att(imap_object, uid, msgOjb)
+            attachments = get_att(imapObj, uid, msgOjb, exts, savedir)
             print('attachments:', attachments)
-            break           # 含有关键字一次即可
+            break  # 含有关键字一次即可
 
     return Subject
 
-# (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = imap_object.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-# (  typ,                msg_data  )                 = imap_object.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+
+# (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = imapObj.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+# (  typ,                msg_data  )                 = imapObj.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
 # OK  msg_data[0][0] msg_data[0][1]  msg_data[1]
 #   b'1 (RFC822 {39944}'                b')'
 #                                                 第二个项目fetch()[1]是一个含有两个元素的列表list,是响应数据msg_data。
@@ -112,14 +113,14 @@ def create_imapObj(hostname, port, username, password, verbose=False):
         try:
             print('\nConnect to {0}:{1} failed'.format(hostname, port), err)
         finally:
-            err = None
             del err
 
-def get_email(hostname, port, username, password, verbose=False):
-    with create_imapObj(hostname, port, username, password, verbose=False) as imap_object:
-# ----------------------------------- folder list ---------------------------------------
-        
-        (typ, mbox_list) = imap_object.list()
+
+def get_email(hostname, port, username, password, mboxs, days, sinflags, titles, exts, savedir):
+    with create_imapObj(hostname, port, username, password, verbose=False) as imapObj:
+        # ----------------------------------- folder list ---------------------------------------
+
+        (typ, mbox_list) = imapObj.list()
         # print('select[typ]:', typ)
         # pprint(mbox_list)
         mbox_name_list = []
@@ -127,87 +128,91 @@ def get_email(hostname, port, username, password, verbose=False):
             flags, delimiter, mbox_name = folder_parse(line)
             mbox_name_list.append(mbox_name)
 
-# ----------------------------------- select folder ---------------------------------------
-        for mbox in mboxs: 
-            (typ, msgsTotal_list) = imap_object.select(mbox, readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
-            # (typ, msgsTotal_list) = imap_object.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
-            # (typ, msgs_total) = imap_object.select('INBOX', readonly=True)                # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+        # ----------------------------------- select folder ---------------------------------------
+        for mbox in mboxs:
+            (typ, msgsTotal_list) = imapObj.select(mbox,
+                                                   readonly=True)  # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+            # (typ, msgsTotal_list) = imapObj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
+            # (typ, msgs_total) = imapObj.select('INBOX', readonly=True)                # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # IMAP4.select(mailbox='INBOX', readonly=False)
             # 选择一个邮箱。 返回的数据是 mailbox 中消息的数量 (EXISTS 响应)               
             # typ 同样是响应代码；响应数据 msgs_total是一个包含单个字节类型字符串的列表，该单个字符串包含邮箱中的邮件总数。
 
-            print('"'+ mbox + '"' + 'select[typ]:', typ)
-            print('"'+ mbox + '"' + 'select[msgsTotal_list]:', msgsTotal_list)
-            if typ=='NO':
+            print('"' + mbox + '"' + 'select[typ]:', typ)
+            print('"' + mbox + '"' + 'select[msgsTotal_list]:', msgsTotal_list)
+            if typ == 'NO':
                 print("邮箱文件夹不存在\n\n")
-            elif typ=='OK':
+            elif typ == 'OK':
                 msgs_num = int(msgsTotal_list[0])
                 print('There are {} messages in INBOX'.format(msgs_num))
 
-    # ----------------------------------- search mail ---------------------------------------
-            
+                # ----------------------------------- search mail ---------------------------------------
+
                 Date = date.today() - timedelta(days=days)
                 Date = Date.strftime("%d-%b-%Y")
                 # criterion = f'(SINCE {Date} FROM {From})'
                 criterion = f'(SINCE {Date})'
-                (typ, msgsUids_list) = imap_object.search(None, criterion)            # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
-                # status, message = imap_object.search(None, 'OR FROM "ooxx@fuck.com"', 'SUBJECT "测试"'.encode('utf-8'))
+                (typ, msgsUids_list) = imapObj.search(None,
+                                                      criterion)  # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
+                # status, message = imapObj.search(None, 'OR FROM "ooxx@fuck.com"', 'SUBJECT "测试"'.encode('utf-8'))
                 # IMAP4.search(charset, criterion[, ...])，其第二个参数形状同status()第二个参数类似。
                 # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None    
                 # 同c.status()一样，其响应数据也是一个包含单个字节类型(即字符串前面标有b的前缀)字符串的列表，
                 # 该字符串是一个由空格分隔的连续消息(邮件)ID组成。
 
-                print('"'+ mbox + '"' + 'search[typ]:', typ)
+                print('"' + mbox + '"' + 'search[typ]:', typ)
                 # print('search[msgsUids_list]:', msgsUids_list, '\n')      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
 
                 if not msgsUids_list[0]:
                     print("未搜索到符合条件的邮件！\n")
                 else:
-                    uids_list = msgsUids_list[0].split()                                      # [::-1]列表翻转这里没使用。 uids_list for循环，一个一个uid地fetch获取消息
+                    uids_list = msgsUids_list[0].split()  # [::-1]列表翻转这里没使用。 uids_list for循环，一个一个uid地fetch获取消息
                     num = len(uids_list)
                     # print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')        
 
-                    uids_str = msgsUids_list[0].decode("utf-8")     # Bytes to String
-                    uids_str = uids_str.replace(' ', ',')
-                    uids_byt = bytes(uids_str, "utf-8")             # String to Bytes               # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
+                    uids_byt = msgsUids_list[0].replace(b' ', b',')             # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
                     # print("由多个uid组成的uids_byt,一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
 
                     print('按search条件搜索到的邮件总数:', num, '\n')
 
-    # ----------------------------------- fetch messages ---------------------------------------
-                # ===============================================================================
-                    if sinflags == True:            # 单个模式fetch
+                    # ----------------------------------- fetch messages ---------------------------------------
+                    # ===============================================================================
+                    if sinflags:  # 单个模式fetch
                         i = 0
                         for uid_byt in uids_list:
-                            (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = imap_object.fetch(uid_byt, '(RFC822)')       # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                            (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = imapObj.fetch(uid_byt,
+                                                                                             '(RFC822)')  # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                             print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
-                    # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                            # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
                             if typ == 'NO':
-                                print("单个获取uid_byt="+ uid_byt +"的消息失败！")
+                                print("单个获取uid_byt=" + uid_byt + "的消息失败！")
                             elif typ == 'OK':
-                                Subject = do_msg(msgData_bytes, imap_object, uid_byt)
-                                i+=1
-                                print('uid_'+str(i)+':', uid_byt, 'decoded Subject:', Subject, '\n')
+                                Subject = do_msg(msgData_bytes, imapObj, uid_byt, titles, exts, savedir)
+                                i += 1
+                                print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
 
-                # ===============================================================================
-                    elif sinflags == False:          # 批量模式fetch
-                        (typ, msg_data) = imap_object.fetch(uids_byt, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
+                    # ===============================================================================
+                    elif not sinflags:  # 批量模式fetch
+                        (typ, msg_data) = imapObj.fetch(uids_byt,
+                                                        '(RFC822)')  # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
                         # print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
 
-                    # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                        # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
                         if typ == 'NO':
-                            print("批量获取uids_byt="+ uids_byt +"的消息失败！")
+                            print("批量获取uids_byt=" + uids_byt.decode('utf-8') + "的消息失败！")
                         elif typ == 'OK':
                             i = 0
-                            for uid, msgData_bytes in msg_data[::2]:     # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。
+                            for uid, msgData_bytes in msg_data[
+                                                      ::2]:  # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。
                                 uid_byt = uid.split()[0]
-                                Subject = do_msg(msgData_bytes, imap_object, uid_byt)
-                                i+=1
-                                print('uid_'+str(i)+':', uid_byt, 'decoded Subject:', Subject, '\n')
- 
-if __name__ == '__main__':
-    start_time= time.time()
+                                Subject = do_msg(msgData_bytes, imapObj, uid_byt, titles, exts, savedir)
+                                i += 1
+                                print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
+
+
+def main():
+    start_time = time.time()
     config = configparser.ConfigParser()
     config.read([os.path.expanduser('docs/config.cfg')], encoding='utf-8')
     hostname = config['server']['hostname']
@@ -221,16 +226,20 @@ if __name__ == '__main__':
     days = int(config['other']['days'])
     From = config['other']['From']
     sinflags = config['other']['sinflags']
-    sinflags = True if sinflags.lower() == 'true' else False        # str to bool
+    sinflags = True if sinflags.lower() == 'true' else False  # str to bool
     mode = ""
-    if sinflags == True:
+    if sinflags:
         mode = "单个模式"
-    elif sinflags == False:
+    elif not sinflags:
         mode = "批量模式"
     else:
         print("未选定好模式")
 
     for i in range(len(usernames)):
-        get_email(hostname, port, usernames[i], passwords[i], verbose=False)
-    
-    print(f'{mode}fetch，共耗时{time.time()-start_time}')   
+        get_email(hostname, port, usernames[i], passwords[i], mboxs, days, sinflags, titles, exts, savedir)
+
+    print(f'{mode}fetch，共耗时{time.time() - start_time}')
+
+
+if __name__ == '__main__':
+    main()

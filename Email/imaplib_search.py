@@ -1,7 +1,8 @@
-import configparser, os
-from imaplib_imapobj import create_imapObj
-from imaplib_folder_parse import folder_parse
+import configparser
+import os
 
+from imaplib_folder_parse import folder_parse
+from imaplib_imapobj import create_imapObj
 
 # criterion = 'UnSeen'
 # criterion = 'ALL'
@@ -17,12 +18,12 @@ usernames = config['account']['username'].split(',')
 passwords = config['account']['password'].split(',')
 
 for i in range(len(usernames)):
-    with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (Obj):
-        typ, mbox_data = Obj.list()
+    with create_imapObj(hostname, port, usernames[i], passwords[i], verbose=False) as (imapObj):
+        typ, mbox_data = imapObj.list()
         for line in mbox_data:
             flags, delimiter, mbox_name = folder_parse(line)
-            Obj.select('"{}"'.format(mbox_name), readonly=True)
-            typ, msg_ids = Obj.search(
+            imapObj.select('"{}"'.format(mbox_name), readonly=True)
+            typ, msg_ids = imapObj.search(
                 None,
                 criterion,
             )
