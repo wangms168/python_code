@@ -18,7 +18,7 @@ def header_decode(header):
     return text
 
 
-def get_att(imapObj, uid, msg, exts, savedir):
+def get_att(imapObj, uid, msg):
     """
     下载邮件中的附件
     """
@@ -60,7 +60,7 @@ def get_att(imapObj, uid, msg, exts, savedir):
     return attachments
 
 
-def do_msg(msgData_bytes, imapObj, uid, titles, exts, savedir):
+def do_msg(msgData_bytes, imapObj, uid):
     # 获取消息对象
     msgOjb = email.message_from_bytes(msgData_bytes)
     # email.message_from_bytes(s, _class=None, *, policy=policy.compat32)
@@ -77,7 +77,7 @@ def do_msg(msgData_bytes, imapObj, uid, titles, exts, savedir):
 
     for title in titles:
         if title in Subject:
-            attachments = get_att(imapObj, uid, msgOjb, exts, savedir)
+            attachments = get_att(imapObj, uid, msgOjb)
             print('attachments:', attachments)
             break  # 含有关键字一次即可
 
@@ -116,7 +116,7 @@ def create_imapObj(hostname, port, username, password, verbose=False):
             del err
 
 
-def get_email(hostname, port, username, password, mboxs, days, sinflags, titles, exts, savedir):
+def get_email(hostname, port, username, password):
     with create_imapObj(hostname, port, username, password, verbose=False) as imapObj:
         # ----------------------------------- folder list ---------------------------------------
 
@@ -170,7 +170,7 @@ def get_email(hostname, port, username, password, mboxs, days, sinflags, titles,
                     num = len(uids_list)
                     # print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')        
 
-                    uids_byt = msgsUids_list[0].replace(b' ', b',')             # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
+                    uids_byt = msgsUids_list[0].replace(b' ', b',')  # 由多个uid组成的uids_byt，一次性地批量fetch获取消息
                     # print("由多个uid组成的uids_byt,一次性地批量fetch获取消息:uids_byt=", uids_byt, '\n')
 
                     print('按search条件搜索到的邮件总数:', num, '\n')
@@ -188,7 +188,7 @@ def get_email(hostname, port, username, password, mboxs, days, sinflags, titles,
                             if typ == 'NO':
                                 print("单个获取uid_byt=" + uid_byt + "的消息失败！")
                             elif typ == 'OK':
-                                Subject = do_msg(msgData_bytes, imapObj, uid_byt, titles, exts, savedir)
+                                Subject = do_msg(msgData_bytes, imapObj, uid_byt)
                                 i += 1
                                 print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
 
@@ -206,17 +206,17 @@ def get_email(hostname, port, username, password, mboxs, days, sinflags, titles,
                             for uid, msgData_bytes in msg_data[
                                                       ::2]:  # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。
                                 uid_byt = uid.split()[0]
-                                Subject = do_msg(msgData_bytes, imapObj, uid_byt, titles, exts, savedir)
+                                Subject = do_msg(msgData_bytes, imapObj, uid_byt)
                                 i += 1
                                 print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
 
 
-def main():
+if __name__ == '__main__':
     start_time = time.time()
     config = configparser.ConfigParser()
     config.read([os.path.expanduser('docs/config.cfg')], encoding='utf-8')
-    hostname = config['server']['hostname']
-    port = config['server']['port']
+    Hostname = config['server']['hostname']
+    Port = config['server']['port']
     usernames = config['account']['username'].split(',')
     passwords = config['account']['password'].split(',')
     mboxs = config['other']['mboxs'].split('|')
@@ -235,11 +235,7 @@ def main():
     else:
         print("未选定好模式")
 
-    for i in range(len(usernames)):
-        get_email(hostname, port, usernames[i], passwords[i], mboxs, days, sinflags, titles, exts, savedir)
+    for n in range(len(usernames)):
+        get_email(Hostname, Port, usernames[n], passwords[n])
 
     print(f'{mode}fetch，共耗时{time.time() - start_time}')
-
-
-if __name__ == '__main__':
-    main()
