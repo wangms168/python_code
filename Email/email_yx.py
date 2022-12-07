@@ -18,7 +18,7 @@ def header_decode(header):
     return text
 
 
-def get_att(imapObj, uid, msg):
+def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject):
     """
     下载邮件中的附件
     """
@@ -30,7 +30,7 @@ def get_att(imapObj, uid, msg):
             continue
         fileName = part.get_filename()
         fileName = header_decode(fileName)
-        # print('fileName', fileName)
+        print('fileName', fileName)
 
         # 只获取指定拓展名的附件
         extension = os.path.splitext(os.path.split(fileName)[1])[1]
@@ -39,47 +39,47 @@ def get_att(imapObj, uid, msg):
 
         # 如果获取到了文件，则将文件保存在指定的目录下
         if fileName:
-            filePath = os.path.join(savedir, fileName)
-            # print('filePath:', filePath)
+            if mbfolder == '宝城期货':
+                fileName = Subject + '_' + fileName[9:]
+                print("改后文件名：", fileName)
+            filePath = os.path.join(savedir, mbfolder, fileName)
+            print('filePath:', filePath)
             if os.path.isfile(filePath):
-                pass
-                # print("文件已存在，不下载啦！")
+                print("文件已存在，不下载啦！")
             else:
-                if not os.path.exists(savedir):
-                    os.makedirs(savedir)
+                if not os.path.exists(savedir+mbfolder):
+                    os.makedirs(savedir+mbfolder)
                 fp = open(filePath, 'wb')
                 fp.write(part.get_payload(decode=True))
                 fp.close()
                 attachments.append(fileName)
-                # print("下载了uid:" + str(uid) + "的附件。")
+                print("下载了uid:" + str(uid) + "的附件。")
 
-                imapObj.select('&bWZOHJT2iEw-', readonly=False)
-                # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
+                imapObj.select(s_mbfolder, readonly=False)  # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
                 imapObj.store(uid, '+FLAGS', '\\Seen')  # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
-                # serv.uid('STORE', num, '+FLAGS', '\'UnSeen')
 
     return attachments
 
 
-def do_msg(msgData_bytes, imapObj, uid):
+def do_msg(msgData_bytes, imapObj, uid, mbfolder, s_mbfolder):
     # 获取消息对象
-    msgOjb = email.message_from_bytes(msgData_bytes)
+    msgObj = email.message_from_bytes(msgData_bytes)
     # email.message_from_bytes(s, _class=None, *, policy=policy.compat32)
     # 从一个 bytes-like object 中返回消息对象。 这与 BytesParser().parsebytes(s) 等价。
 
-    # print('msgOjb.keys:', msgOjb.keys())
+    # print('msgObj.keys:', msgObj.keys())
     # msg.keys() https://stackoverflow.com/questions/703185/using-email-headerparser-with-imaplib-fetch-in-python
 
     # 从消息对象中提取消息标头
-    Subject = msgOjb['Subject']
+    Subject = msgObj['Subject']
 
     # 对消息标头进行解码
     Subject = header_decode(Subject)
 
     for title in titles:
         if title in Subject:
-            attachments = get_att(imapObj, uid, msgOjb)
-            # print('attachments:', attachments)
+            attachments = get_att(imapObj, uid, msgObj, mbfolder, s_mbfolder, Subject)
+            print('attachments:', attachments)
             break  # 含有关键字一次即可
 
     return Subject
@@ -93,7 +93,7 @@ def do_msg(msgData_bytes, imapObj, uid):
 #                                                     第二个项目的第一个元素msg_data[0]是含有两个项目的tuple:
 #                                                         第一个项目msg_data[0][0]是一个字节类型字符串（b'1 (RFC822 {39944}'）
 #                                                         第二个项目msg_data[0][1]是一个含有真正大量消息数据的字节类型字符串
-#                                                             email.message_from_bytes(msg_data[0][1])就是从一个 bytes-like object 中返回消息对象message_ojb。 这与 BytesParser().parsebytes(s) 等价。
+#                                                             email.message_from_bytes(msg_data[0][1])就是从一个 bytes-like object 中返回消息对象message_Obj。 这与 BytesParser().parsebytes(s) 等价。
 #                                                             再从消息对象中获取get出各消息标头(<class 'str'>)
 #                                                             再用email.header.decode_header()在不转换字符集的情况下对消息标头值进行解码，返回仅含有一个(decoded_string, charset)这样元素的列表。
 #                                                             再对decoded_string进行str.decode(charset or "us-ascii")解码，至此解析解码完成。
@@ -134,6 +134,7 @@ def get_email(hostname, port, username, password):
             b_mbfolder = mbfolder.encode('utf-7')
             b_mbfolder = b_mbfolder.replace(b'+', b'&')
             s_mbfolder = b_mbfolder.decode('utf-8')
+            print('b_mbfolder:', b_mbfolder, s_mbfolder)
             (typ, msgsTotal_list) = imapObj.select(s_mbfolder, readonly=True)  # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # (typ, msgsTotal_list) = imapObj.select('&bWZOHJT2iEw-', readonly=True)          # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
             # (typ, msgs_total) = imapObj.select('INBOX', readonly=True)                # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
@@ -190,9 +191,9 @@ def get_email(hostname, port, username, password):
                             if typ == 'NO':
                                 print("单个获取uid_byt=" + uid_byt + "的消息失败！")
                             elif typ == 'OK':
-                                # Subject = do_msg(msgData_bytes, imapObj, uid_byt)
+                                Subject = do_msg(msgData_bytes, imapObj, uid_byt, mbfolder, s_mbfolder)
                                 i += 1
-                                # print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
+                                print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
 
                     # ===============================================================================
                     elif not sinflags:  # 批量模式fetch
@@ -208,9 +209,9 @@ def get_email(hostname, port, username, password):
                             for uid, msgData_bytes in msg_data[
                                                       ::2]:  # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。
                                 uid_byt = uid.split()[0]
-                                # Subject = do_msg(msgData_bytes, imapObj, uid_byt)
+                                Subject = do_msg(msgData_bytes, imapObj, uid_byt, mbfolder, s_mbfolder)
                                 i += 1
-                                # print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
+                                print('uid_' + str(i) + ':', uid_byt, 'decoded Subject:', Subject, '\n')
 
 
 if __name__ == '__main__':
