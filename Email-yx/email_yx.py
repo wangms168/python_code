@@ -45,9 +45,9 @@ def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject, date_Ym_old):
             if not date_Ym == date_Ym_old:
                 date_Ym_old = date_Ym
 
-            savePath = os.path.join(savedir, '08-IRS客户日结单', date_Ym + '利率IRS互换日结单', date_Ym + '利率IRS互换日结单-' + mbfolder)
+            savePath = os.path.join(savedir, '08-IRS客户日结单', date_Ym[:4]+'利率IRS互换日结单', date_Ym + '利率IRS互换日结单', date_Ym + '利率IRS互换日结单-' + mbfolder)
             if mbfolder == '宝城期货':
-                savePath = os.path.join(savedir, '09-股指期货账单', date_Ym + '期货逐日逐笔单')
+                savePath = os.path.join(savedir, '09-股指期货账单', date_Ym[:4]+'期货逐日逐笔单',  date_Ym + '期货逐日逐笔单')
             filePath = os.path.join(savePath, fileName)
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
