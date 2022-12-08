@@ -28,7 +28,7 @@ in_xlFile = ''  # 工资、社保excel文件
 def r_cfg():
     global ZDR_bm, YYB_bm, JBB_bm
     cfg = configparser.ConfigParser()
-    cfg.read('docs\\config.cfg')
+    cfg.read('docs\\config.cfg', encoding='utf-8')
     ZDR_bm = cfg.get('DEFAULT', 'zdr_bm')
     YYB_bm = cfg.get('DEFAULT', 'yyb_bm')
     JBB_bm = cfg.get('DEFAULT', 'jbb_bm')
