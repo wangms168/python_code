@@ -8,6 +8,8 @@
 /**/.idea/
 /**/__pycache__/
 /**/output/
+/**/build/
+/**/dist/
 
 /**/docs/*
 !/**/docs/config.cfg
@@ -19,3 +21,4 @@
 
 
 # 忽略如下文件，即将其不纳入版本控制：
+Email-yx.zip
