@@ -6,12 +6,7 @@ import tkinter as tk
 import tkinter.filedialog
 from tkinter import ttk, messagebox
 import windnd
-
 import pandas as pd
-
-pd.set_option('display.unicode.ambiguous_as_wide', True)
-pd.set_option('display.unicode.east_asian_width', True)
-pd.set_option('display.width', 180)
 
 import convert
 import yg_fl
@@ -19,10 +14,9 @@ import jjr_fl
 import sb_fl
 import gjj_fl
 
-ZDR_bm = ''  # 制单人编码
-YYB_bm = ''  # 营业部编码
-JBB_bm = ''  # 基本部门编码
-in_xlFile = ''  # 工资、社保excel文件
+pd.set_option('display.unicode.ambiguous_as_wide', True)
+pd.set_option('display.unicode.east_asian_width', True)
+pd.set_option('display.width', 180)
 
 
 def r_cfg():
@@ -66,7 +60,7 @@ def check():
 
 
 def check_gz(lb):  # 工资表初步检查
-    global in_xlFile, kmdm_col, kmdm, p, lst
+    global in_xlFile
     xls = pd.ExcelFile(in_xlFile)
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -77,7 +71,7 @@ def check_gz(lb):  # 工资表初步检查
 
     in_df = pd.read_excel(in_xlFile, sheet_name=lb, index_col=2 - 1, skiprows=3 - 1)
     in_df.rename(columns=lambda x: str(x) if type(x) == int else x,
-                 inplace=True)  # 利用 df.rename 改名函数及 lamada 函数将列名(column names)统一为字符数据类型str
+                 inplace=True)  # 利用 df.rename 改名函数及 lambda 函数将列名(column names)统一为字符数据类型str
     in_df = in_df.loc[:"合计", :"1001"]  # df切片，截取0到"合计"连续的行、0到"1001"连续的列
     # print("切片有效范围后，剔除空行索引和'^Unnamed'列标题前df\n", in_df)
 
@@ -98,6 +92,7 @@ def check_gz(lb):  # 工资表初步检查
 
     # ------------------------------------------------------------------------------------------------------------------
     # 检查三：检查列标题列表是否科目代码范围列表的子集。
+    kmdm = {}
     kmdm_col = in_df.columns
     if lb == "员工":
         kmdm = set(yg_fl.kmdm) | {'1001'}
@@ -113,25 +108,27 @@ def check_gz(lb):  # 工资表初步检查
 
     # ------------------------------------------------------------------------------------------------------------------
     # 检查四：检查行索引中是否含有':|A1|A2|A小计|B小计|D小计|L小计|合计'或':|合计'，以判断人员编码列是否第3列。
+    pat = re.compile('')
     if lb == "员工":
-        p = re.compile(':|A1|A2|A小计|B小计|D小计|L小计|合计')
+        pat = re.compile(':|A1|A2|A小计|B小计|D小计|L小计|合计')
     if lb == "经纪人":
-        p = re.compile(':|合计')
+        pat = re.compile(':|合计')
 
-    if not [x for x in in_df.index if p.findall(x)]:  # 空列表list判断
+    if not [x for x in in_df.index if pat.findall(x)]:  # 空列表list判断
         print("\n【行索引】----------------------------------------\n", in_df.index)  # 行索引
         messagebox.showinfo(title='提示', message='人员编码列可能不在第2列!')
         return
 
     # ------------------------------------------------------------------------------------------------------------------
     # 检查五：检查行索引中是否存在非法字段，如全角的冒号"："
-    if not all(p.findall(x) for x in in_df.index):
+    if not all(pat.findall(x) for x in in_df.index):
         print("\n【行索引】----------------------------------------\n", in_df.index)  # 行索引
         messagebox.showinfo(title='提示', message='人员编码列存在非法字段！')
         return
 
     # ------------------------------------------------------------------------------------------------------------------
     # 检查六：检查行索引中是否含有'A小计|B小计|合计'或'合计'，已判断人员编码列是否第3列。
+    lst = []
     if lb == "员工":
         lst = ['A小计', 'B小计', '合计']
     if lb == "经纪人":
@@ -157,7 +154,7 @@ def check_sb():  # 社保表初步检查
 
     in_df_0 = pd.read_excel(in_xlFile, sheet_name="社保", index_col=3 - 1, skiprows=3 - 1)
     in_df_0.rename(columns=lambda x: str(x) if type(x) == int else x,
-                   inplace=True)  # 利用 df.rename 改名函数及 lamada 函数将列名(column names)统一为字符数据类型str
+                   inplace=True)  # 利用 df.rename 改名函数及 lambda 函数将列名(column names)统一为字符数据类型str
     in_df_0 = in_df_0.loc[:"实付数据", :"1001"]  # df切片，截取0到"合计"连续的行、0到"1001"连续的列
     # in_df_0 系有效范围切片后、清除空行索引、'^Unnamed'列标题前的 DataFrame，可用于dd-df的copy。
 
@@ -191,8 +188,8 @@ def check_sb():  # 社保表初步检查
 
     # ------------------------------------------------------------------------------------------------------------------
     # 检查四：检查行索引中是否含有'本分小计|应收小计|成本数据|实付数据'，以判断人员编码列是否第3列。
-    p = re.compile('本分小计|应收小计|成本数据|实付数据')
-    if not [x for x in in_df.index if p.findall(x)]:  # 空列表list判断
+    pat = re.compile('本分小计|应收小计|成本数据|实付数据')
+    if not [x for x in in_df.index if pat.findall(x)]:  # 空列表list判断
         print("\n【列标题】----------------------------------------\n", kmdm_col)
         print("\n【科目代码范围】----------------------------------------\n", kmdm)
         print("\n【差集】----------------------------------------\n", set(kmdm_col) - kmdm)
@@ -206,7 +203,7 @@ def check_sb():  # 社保表初步检查
         messagebox.showinfo(title='提示', message='检查六:行索引name不是“xm”!')
         return
 
-    # ==================================================================================================================
+    # -------------------------------------------------------------------------------------------------------------------
     # 准备代垫dd_df，其含应收应付及代垫总部，sf_df应收应付，dz_df代垫总部
 
     # dd_df = pd.read_excel(in_xlFile, sheet_name="社保", index_col=2 - 1, skiprows=3 - 1)
@@ -271,13 +268,13 @@ def convert_yg(ent_arg_1, ent_arg_2, ent_arg_3):
     if len(JBB_bm) == 4:
         JBB_bm = YYB_bm + JBB_bm
 
-    re = check_gz("员工")
-    if not (re is not None):  # if not re: 或 if re:  这样写不行！
+    req = check_gz("员工")
+    if not (req is not None):  # if not re: 或 if re:  这样写不行！
         print("员工工资表检测到问题，推出！")
         return
     else:
-        in_df = re
-        # ==================================================================================================================
+        in_df = req
+        # -------------------------------------------------------------------------------------------------------------------
         # 各项检查完后，最后进行转换和分录生成：
         convert.convert_yg(ZDR_bm, YYB_bm, JBB_bm, in_df)
 
@@ -294,13 +291,13 @@ def convert_jjr(ent_arg_1, ent_arg_2, ent_arg_3):
     if len(JBB_bm) == 4:
         JBB_bm = YYB_bm + JBB_bm
 
-    re = check_gz("经纪人")
-    if not (re is not None):
+    req = check_gz("经纪人")
+    if not (req is not None):
         print("员工工资表检测到问题，推出！")
         return
     else:
-        in_df = re
-        # ==================================================================================================================
+        in_df = req
+        # -------------------------------------------------------------------------------------------------------------------
         # 各项检查完后，最后进行转换和分录生成：
         convert.convert_jjr(ZDR_bm, YYB_bm, JBB_bm, in_df)
 
@@ -317,13 +314,13 @@ def convert_sb(ent_arg_1, ent_arg_2, ent_arg_3):
     if len(JBB_bm) == 4:
         JBB_bm = YYB_bm + JBB_bm
 
-    re = check_sb()
-    if not (re is not None):  # re为空，没有if因有错而返回reture空。
+    req = check_sb()
+    if not (req is not None):  # re为空，没有if因有错而返回 return 空。
         print("员工工资表检测到问题，推出！")
         return
     else:
-        in_df, sf_df, dz_df = re
-        # ==================================================================================================================
+        in_df, sf_df, dz_df = req
+        # -------------------------------------------------------------------------------------------------------------------
         # 各项检查完后，最后进行转换和分录生成：
         convert.convert_sb(ZDR_bm, YYB_bm, JBB_bm, in_df, sf_df, dz_df)
 
@@ -340,13 +337,13 @@ def convert_gjj(ent_arg_1, ent_arg_2, ent_arg_3):
     if len(JBB_bm) == 4:
         JBB_bm = YYB_bm + JBB_bm
 
-    re = check_sb()
-    if not (re is not None):
+    req = check_sb()
+    if not (req is not None):
         print("员工工资表检测到问题，推出！")
         return
     else:
-        in_df, sf_df, dz_df = re
-        # ==================================================================================================================
+        in_df, sf_df, dz_df = req
+        # -------------------------------------------------------------------------------------------------------------------
         # 各项检查完后，最后进行转换和分录生成：
         convert.convert_gjj(ZDR_bm, YYB_bm, JBB_bm, in_df, sf_df, dz_df)
 
@@ -412,7 +409,7 @@ def main():
     style.configure('Text.TButton', font=('Arial', 11,))
 
     # 创建widget
-    ##=======================================================================================    
+    # -------------------------------------------------------------------------------------------------------------------
     frm_logo = tk.Frame(mainframe)  # , bg='blue'
     #   .grid_columnconfigure的作用在横向拉扯窗口时可以看出
     frm_logo.grid_columnconfigure(0, weight=1)
@@ -434,7 +431,7 @@ def main():
     spr_logo = ttk.Separator(frm_logo, orient=tk.HORIZONTAL)
     spr_logo.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="ew")
 
-    ##=======================================================================================    
+    # -------------------------------------------------------------------------------------------------------------------
     frm_arg = tk.Frame(mainframe)
     frm_arg.grid_columnconfigure(0, weight=1)
     frm_arg.grid_columnconfigure(1, weight=1)
@@ -472,7 +469,7 @@ def main():
     spr_arg = ttk.Separator(frm_arg, orient=tk.HORIZONTAL)
     spr_arg.grid(row=1, column=0, columnspan=7, padx=5, pady=5, sticky="ew")
 
-    ##=======================================================================================    
+    # -------------------------------------------------------------------------------------------------------------------
     frm_sel = tk.Frame(mainframe)
     frm_sel.grid_columnconfigure(0, weight=1)
     frm_sel.grid_columnconfigure(1, weight=1)
@@ -501,7 +498,7 @@ def main():
     spr_sel = ttk.Separator(frm_sel, orient=tk.HORIZONTAL)
     spr_sel.grid(row=1, column=0, columnspan=6, padx=5, pady=5, sticky="ew")
 
-    ##=======================================================================================    
+    # -------------------------------------------------------------------------------------------------------------------
     frm_run = tk.Frame(mainframe)
     frm_run.grid_columnconfigure(0, weight=1)
     frm_run.grid_columnconfigure(1, weight=1)
@@ -524,7 +521,7 @@ def main():
     spr_run = ttk.Separator(frm_run, orient=tk.HORIZONTAL)
     spr_run.grid(row=1, column=0, columnspan=4, padx=5, pady=5, sticky="ew")
 
-    ##=======================================================================================    
+    # -------------------------------------------------------------------------------------------------------------------
     frm_exit = tk.Frame(mainframe)
     frm_exit.grid_columnconfigure(0, weight=1)
     frm_exit.pack(fill="x")
@@ -544,5 +541,10 @@ def main():
 
 
 if __name__ == '__main__':
+    ZDR_bm = ''  # 制单人编码
+    YYB_bm = ''  # 营业部编码
+    JBB_bm = ''  # 基本部门编码
+    in_xlFile = ''  # 工资、社保excel文件
+
     r_cfg()
     main()

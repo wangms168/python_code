@@ -1,19 +1,25 @@
 import pandas as pd
 from win32com.client import constants
 
+
 def append(xlapp_flag, out_ws, fl_list):
     if xlapp_flag == "win32com":
         # bottom = out_ws.UsedRange.Rows.Count                  # 不准
-        bottom = out_ws.Range('A'+str(out_ws.Rows.Count)).End(constants.xlUp).Row 
-        out_ws.Range(out_ws.Cells(bottom+1, 1), out_ws.Cells(bottom+1, len(fl_list))).Value = fl_list
+        bottom = out_ws.Range('A' + str(out_ws.Rows.Count)).End(constants.xlUp).Row
+        out_ws.Range(out_ws.Cells(bottom + 1, 1), out_ws.Cells(bottom + 1, len(fl_list))).Value = fl_list
     if xlapp_flag == "xlwings":
         bottom = out_ws.range('A' + str(out_ws.cells.last_cell.row)).end('up').row
-        out_ws.range("A"+ str(bottom+1)).options(index=False, header=False).value = fl_list
+        out_ws.range("A" + str(bottom + 1)).options(index=False, header=False).value = fl_list
     if xlapp_flag == "openpyxl":
         bottom = out_ws.max_row
         last_col = out_ws.max_column
         out_ws.append(fl_list)
 
+# 以循环的空值来获取有数值的最后一行
+# row = 1
+# while ws.range('A' + str(row)).value is not None:
+#     row += 1
+# print('row:', row-1)
 
 def km66011501(xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
     lb_1 = lb.split(':')[0]
@@ -732,15 +738,15 @@ def km6601070201(xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
 
 
 def km605102(xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
-    amt = round(amt/1.05,2)
+    amt = round(amt / 1.05, 2)
     fl_list[5] = '自有房产员工租用扣房租'
     fl_list[6] = k
     fl_list[11] = str(amt)
     fl_list[12] = str(amt)
     fl_list[15] = jbb + ':部门'
     append(xlapp_flag, out_ws, fl_list)
-    
-    amt = round(amt*0.05,2)
+
+    amt = round(amt * 0.05, 2)
     fl_list[5] = '自有房产员工租用扣房租5%增值税'
     fl_list[6] = '2221160201'
     fl_list[11] = str(amt)
@@ -762,7 +768,7 @@ def km221105(xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
 
 
 def km224107(xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
-    for i, v in amt.items():                                                    # items是pd.Serie的每个项目，i是键(df的index)、v是值('224107'这列上的数据)
+    for i, v in amt.items():  # items是pd.Serie的每个项目，i是键(df的index)、v是值('224107'这列上的数据)
         if v and (not (pd.isnull(v))):
             i1 = i.split(':')[0]
             i2 = i.split(':')[1]
@@ -793,7 +799,7 @@ def km1001(xlapp_flag, SInfo_df, fl_list, amt, jbb, in_df, out_ws):
         kmbm = SInfo_df['基本户-科目编码'][YYB_bm]
         yhzh = SInfo_df['基本户-银行账户编码'][YYB_bm] + ':银行账户'
 
-        if pd.isna(SInfo_df)['基本户-科目编码'][YYB_bm]:                         # 若“科目编码”为空、则使用1001。 pd.isna(SInfo_df)将各元素值转化为True或False
+        if pd.isna(SInfo_df)['基本户-科目编码'][YYB_bm]:  # 若“科目编码”为空、则使用1001。 pd.isna(SInfo_df)将各元素值转化为True或False
             kmbm = '1001'
             yhzh = ''
 
@@ -841,70 +847,72 @@ def km1001(xlapp_flag, SInfo_df, fl_list, amt, jbb, in_df, out_ws):
 
 
 dict_AB = {
-    "66011501": km66011501,             # 工资
-    "66011502": km66011502,             # 奖金
-    "66011503": km66011503,             # 过节费
-    "66011504": km66011504,             # 交通补贴
-    "66011505": km66011505,             # 伙食补贴
-    "66011506": km66011506,             # 通讯补贴
-    "66011510": km66011510,             # 劳保补贴
-    "66011519": km66011519,             # 其他补贴
-    "22110103": km22110103,             # 应付工资\其他  补贴小计
-    "66011507": km66011507,             # 辞退福利
+    "66011501": km66011501,  # 工资
+    "66011502": km66011502,  # 奖金
+    "66011503": km66011503,  # 过节费
+    "66011504": km66011504,  # 交通补贴
+    "66011505": km66011505,  # 伙食补贴
+    "66011506": km66011506,  # 通讯补贴
+    "66011510": km66011510,  # 劳保补贴
+    "66011519": km66011519,  # 其他补贴
+    "22110103": km22110103,  # 应付工资\其他  补贴小计
+    "66011507": km66011507,  # 辞退福利
 
-    "66011601": km66011601,             # 医疗卫生
-    "66011602": km66011602,             # 防暑降温费
-    "66011603": km66011603,             # 取暖费
-    "66011604": km66011604,             # 独生子女费
-    "66011605": km66011605,             # 文体宣传费
-    "66011606": km66011606,             # 探亲路费
-    "66011607": km66011607,             # 职工困难补助
-    "66011608": km66011608,             # 丧葬抚恤救济费
-    "66011609": km66011609,             # 食堂费用
-    "66011619": km66011619,             # 其他福利
-    "221102": km221102,                 # 应付福利
+    "66011601": km66011601,  # 医疗卫生
+    "66011602": km66011602,  # 防暑降温费
+    "66011603": km66011603,  # 取暖费
+    "66011604": km66011604,  # 独生子女费
+    "66011605": km66011605,  # 文体宣传费
+    "66011606": km66011606,  # 探亲路费
+    "66011607": km66011607,  # 职工困难补助
+    "66011608": km66011608,  # 丧葬抚恤救济费
+    "66011609": km66011609,  # 食堂费用
+    "66011619": km66011619,  # 其他福利
+    "221102": km221102,  # 应付福利
 
-    "660115080101": km660115080101,     # 佣金提成
-    "660115080102": km660115080102,     # 服务提成
-    "660115080103": km660115080103,     # 期权业务提成
-    "660115080104": km660115080104,     # IB业务提成
-    "660115080105": km660115080105,     # 管理津贴
-    "660115080106": km660115080106,     # 投顾业务提成
-    "660115080107": km660115080107,     # 两融净息差提成
-    "660115080108": km660115080108,     # 开户奖
-    "6601150802": km6601150802,         # 基金保有量提成
-    "6601150803": km6601150803,         # 基金销售奖励
-    "6601150804": km6601150804,         # 基金销售手续费返还
-    "6601150805": km6601150805,         # 公司理财产品销售奖励
-    "6601150806": km6601150806,         # 代理销售保险产品
-    "6601150807": km6601150807,         # 非公募产品销售奖励
-    "6601150819": km6601150819,         # 其他
-    "22110104": km22110104,             # 应付提成支出
-    "222105": km222105,                 # 应付个税
+    "660115080101": km660115080101,  # 佣金提成
+    "660115080102": km660115080102,  # 服务提成
+    "660115080103": km660115080103,  # 期权业务提成
+    "660115080104": km660115080104,  # IB业务提成
+    "660115080105": km660115080105,  # 管理津贴
+    "660115080106": km660115080106,  # 投顾业务提成
+    "660115080107": km660115080107,  # 两融净息差提成
+    "660115080108": km660115080108,  # 开户奖
+    "6601150802": km6601150802,  # 基金保有量提成
+    "6601150803": km6601150803,  # 基金销售奖励
+    "6601150804": km6601150804,  # 基金销售手续费返还
+    "6601150805": km6601150805,  # 公司理财产品销售奖励
+    "6601150806": km6601150806,  # 代理销售保险产品
+    "6601150807": km6601150807,  # 非公募产品销售奖励
+    "6601150819": km6601150819,  # 其他
+    "22110104": km22110104,  # 应付提成支出
+    "222105": km222105,  # 应付个税
 }
 
 dict_D = dict_AB.copy()
-dict_D["66011501"] = km66011501_D       # D类人员
+dict_D["66011501"] = km66011501_D  # D类人员
 dict_L = dict_AB.copy()
-dict_L["66011501"] = km66011501_L       # L类人员
+dict_L["66011501"] = km66011501_L  # L类人员
 
 dict = {
-    "22411901": km22411901,             # 总部下拨奖励
-    "22410401": km22410401,             # 应付个人养老
-    "22410402": km22410402,             # 应付个人失业
-    "22410403": km22410403,             # 应付个人医疗
-    "22410404": km22410404,             # 应付个人公积金
-    "22410409": km22410409,             # 应付企业年金(其他保险)
-    "221105": km221105,                 # 应付工会经费
-    "6601070201": km6601070201,         # 扣租入房产员工宿舍房租
-    "605102": km605102,                 # 扣自有房产员工房租
-    "224107": km224107,                 # 应付风险金
+    "22411901": km22411901,  # 总部下拨奖励
+    "22410401": km22410401,  # 应付个人养老
+    "22410402": km22410402,  # 应付个人失业
+    "22410403": km22410403,  # 应付个人医疗
+    "22410404": km22410404,  # 应付个人公积金
+    "22410409": km22410409,  # 应付企业年金(其他保险)
+    "221105": km221105,  # 应付工会经费
+    "6601070201": km6601070201,  # 扣租入房产员工宿舍房租
+    "605102": km605102,  # 扣自有房产员工房租
+    "224107": km224107,  # 应付风险金
 }
 
-kmdm = [*dict_AB] + [*dict]             # kmdm = list(dict_AB)
+kmdm = [*dict_AB] + [*dict]  # kmdm = list(dict_AB)
+
 
 def test():
     None
+
 
 def switcher(dict, xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
     # func = dict.get(k, lambda xlapp_flag, k, fl_list, amt, lb, jbb, out_ws: None)
