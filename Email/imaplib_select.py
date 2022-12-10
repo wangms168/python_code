@@ -1,4 +1,6 @@
-import configparser, os
+import configparser
+import os
+
 from imaplib_imapobj import create_imapObj
 
 # [mailbox]

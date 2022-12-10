@@ -6,7 +6,7 @@ import time
 from datetime import date, datetime, timedelta
 import datetime
 from imaplib import IMAP4
-
+from pprint import pprint
 from derow_xw import derow
 
 
@@ -46,7 +46,8 @@ def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject, date_Ym_old):
             if not date_Ym == date_Ym_old:
                 date_Ym_old = date_Ym
 
-            savePath = os.path.join(savedir, '08-IRS客户日结单', date_Ym[:4]+'利率IRS互换日结单', date_Ym + '利率IRS互换日结单', date_Ym + '利率IRS互换日结单-' + mbfolder)
+            savePath = os.path.join(savedir, '08-IRS客户日结单', date_Ym[:4]+'利率IRS互换日结单', date_Ym
+                                    + '利率IRS互换日结单', date_Ym + '利率IRS互换日结单-' + mbfolder)
             if mbfolder == '宝城期货':
                 savePath = os.path.join(savedir, '09-股指期货账单', date_Ym[:4]+'期货逐日逐笔单',  date_Ym + '期货逐日逐笔单')
             filePath = os.path.join(savePath, fileName)
@@ -63,12 +64,13 @@ def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject, date_Ym_old):
                 attachments.append(fileName)
                 # print("下载了uid:" + str(uid) + "的附件。")
 
-                imapObj.select(s_mbfolder, readonly=False)  # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
+                imapObj.select(s_mbfolder, readonly=False)
+                # 以非只读方式select指定邮箱文件夹，此时fetch(search不改变标志flags)可改变标志flags
                 imapObj.store(uid, '+FLAGS', '\\Seen')  # '+FLAGS', '\Seen' 添加已读标志。'\Seen'已读标志、'\UNSEEN'未读标志
+                imapObj.select(s_mbfolder, readonly=True)   # 添加了标志后，马上恢复以只读方式select邮箱，以备顺序的下次使用。
 
                 if mbfolder == '浦发银行':
                     filePath = os.path.abspath(filePath)  # win32com不认识相对路径，故需转换为绝对路径。
-                    # doExcel(filePath)
                     derow(filePath)
 
     return attachments
@@ -77,9 +79,6 @@ def get_att(imapObj, uid, msg, mbfolder, s_mbfolder, Subject, date_Ym_old):
 def do_msg(msgData_bytes, imapObj, uid, mbfolder, s_mbfolder):
     # 获取消息对象
     msgObj = email.message_from_bytes(msgData_bytes)
-    # email.message_from_bytes(s, _class=None, *, policy=policy.compat32)
-    # 从一个 bytes-like object 中返回消息对象。 这与 BytesParser().parsebytes(s) 等价。
-
     # print('msgObj.keys:', msgObj.keys())
     # msg.keys() https://stackoverflow.com/questions/703185/using-email-headerparser-with-imaplib-fetch-in-python
 
@@ -93,25 +92,10 @@ def do_msg(msgData_bytes, imapObj, uid, mbfolder, s_mbfolder):
     for title in titles:
         if title in Subject:
             get_att(imapObj, uid, msgObj, mbfolder, s_mbfolder, Subject, date_Ym_old)
-            break  # 含有关键字一次即可
+            break                   # 含有关键字一次即可
 
     return Subject
 
-
-# (typ, [(msgID_bytes, msgData_bytes), Rrb_bytes]) = imapObj.fetch(uid, '(RFC822)')# fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-# (  typ,                msg_data  )                 = imapObj.fetch(uids_bytes, '(RFC822)')    # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-# OK  msg_data[0][0] msg_data[0][1]  msg_data[1]
-#   b'1 (RFC822 {39944}'                b')'
-#                                                 第二个项目fetch()[1]是一个含有两个元素的列表list,是响应数据msg_data。
-#                                                     第二个项目的第一个元素msg_data[0]是含有两个项目的tuple:
-#                                                         第一个项目msg_data[0][0]是一个字节类型字符串（b'1 (RFC822 {39944}'）
-#                                                         第二个项目msg_data[0][1]是一个含有真正大量消息数据的字节类型字符串
-#                                                             email.message_from_bytes(msg_data[0][1])就是从一个 bytes-like object 中返回消息对象message_Obj。 这与 BytesParser().parsebytes(s) 等价。
-#                                                             再从消息对象中获取get出各消息标头(<class 'str'>)
-#                                                             再用email.header.decode_header()在不转换字符集的情况下对消息标头值进行解码，返回仅含有一个(decoded_string, charset)这样元素的列表。
-#                                                             再对decoded_string进行str.decode(charset or "us-ascii")解码，至此解析解码完成。
-#                                                     第二个项目的第二个元素是一个字节型字符串（ b')'）
-# IMAP4.fetch(message_set, message_parts)取回（部分）信息。“message_ids” 参数是逗号分隔的 ID（例如 “ 1”，“ 1,2”” 或 ID 范围（例如 “ 1：2”）列表。 message_parts应该是一串括在圆括号内的消息部分名。，例如: "(UID BODY[TEXT])"。 返回的数据是由消息部分信封和数据组成的元组。
 
 def create_imapObj(hostname, port, username, password, verbose=False):
     if verbose:
@@ -142,11 +126,18 @@ def folder_parse(line):
 
 def get_email(hostname, port, username, password):
     with create_imapObj(hostname, port, username, password, verbose=False) as imapObj:
-        # ----------------------------------- folder list ---------------------------------------
 
+        # ----------------------------------- folder list ---------------------------------------
         (typ, mbfolder_list) = imapObj.list()
         # print('select[typ]:', typ)
         # pprint(mbfolder_list)
+        """
+        select[typ]: OK
+        [b'() "/" "INBOX"',
+         b'(\\Drafts) "/" "&g0l6P3ux-"',
+         ...
+         b'() "/" "&WSl5p08wUDyIaA-"']
+        """
         mbfolder_name_list = []
         for line in mbfolder_list:
             flags, delimiter, mbfolder_name = folder_parse(line)
@@ -159,11 +150,12 @@ def get_email(hostname, port, username, password):
             s_mbfolder = b_mbfolder.decode('utf-8')
             (typ, msgsTotal_list) = imapObj.select(mailbox=s_mbfolder, readonly=True)
             # if readonly="True" you can't change any flags. But,if it is false, you can do as follow,
-            # 选择一个邮箱。 返回的数据是 mailbox 中消息的数量 (EXISTS 响应)
-            # typ 同样是响应代码；响应数据 msgs_total是一个包含单个字节类型字符串的列表，该单个字符串包含邮箱中的邮件总数。
-
             # print('"' + mbfolder + '"' + 'select[typ]:', typ)
             # print('"' + mbfolder + '"' + 'select[msgsTotal_list]:', msgsTotal_list)
+            """
+            "浦发银行"select[typ]: OK
+            "浦发银行"select[msgsTotal_list]: [b'1407']
+            """
             if typ == 'NO':
                 print("邮箱文件夹不存在\n\n")
             elif typ == 'OK':
@@ -171,63 +163,61 @@ def get_email(hostname, port, username, password):
                 print('There are {} messages in "{}"邮件文件夹'.format(msgs_num, mbfolder))
 
                 # ----------------------------------- search mail ---------------------------------------
-
                 Date = date.today() - timedelta(days=days)
                 Date = Date.strftime("%d-%b-%Y")
                 # criterion = f'(SINCE {Date} FROM {From})'
                 criterion = f'(SINCE {Date})'
-                (typ, msgsUids_list) = imapObj.search(None, criterion)  # 'Seen'、'UnSeen'、'ALL'、'(BEFORE "01-Jan-2022")'
+                (typ, msgsUids_list) = imapObj.search(None, criterion)
                 # status, message = imapObj.search(None, 'OR FROM "ooxx@fuck.com"', 'SUBJECT "测试"'.encode('utf-8'))
                 # IMAP4.search(charset, criterion[, ...])，其第二个参数形状同status()第二个参数类似。
                 # 在邮箱中搜索匹配的消息。 charset 字符集可以为 None
-                # 同c.status()一样，其响应数据也是一个包含单个字节类型(即字符串前面标有b的前缀)字符串的列表，
-                # 该字符串是一个由空格分隔的连续消息(邮件)ID组成。
 
                 # print('"' + mbfolder + '"' + 'search[typ]:', typ)
-                # print('search[msgsUids_list]:', msgsUids_list, '\n')      # msgsUids_list 是只有一个元素的列表，该元素是字节型字符串
-
+                # print('"' + mbfolder + '"' + 'search[msgsUids_list]:', msgsUids_list, '\n')
+                """
+                "浦发银行"search[typ]: OK
+                "浦发银行"search[msgsUids_list]: [b'1404 1405 1406 1407'] 
+                """
                 if not msgsUids_list[0]:
                     print("未搜索到符合条件的邮件！\n")
                 else:
-                    uids_list = msgsUids_list[0].split()[::-1]  # [::-1]未用之前是从最早到最新、列表翻转之后是从最近到最早。 uids_list for循环，一个一个uid地fetch获取消息
-                    num = len(uids_list)
-                    # print("uids_list for循环,一个一个uid地fetch获取消息:uids_list=:", uids_list, '\n')
+                    uids_list = msgsUids_list[0].split()[::-1]          # 原list是从早到近，[::-1]是顺序翻转。
+                    # print("单个uid获取消息fetch:uids_list=:", uids_list)
 
-                    uids_bytes = msgsUids_list[0].replace(b' ', b',')  # 由多个uid组成的uids_bytes，一次性地批量fetch获取消息
-                    # print("由多个uid组成的uids_bytes,一次性地批量fetch获取消息:uids_bytes=", uids_bytes, '\n')
+                    # 未翻转的uids_bytes：
+                    uids_bytes = msgsUids_list[0].replace(b' ', b',')   # 由多个uid组成的uids_bytes，一次性地批量fetch获取消息
+                    # uids_bytes不管其顺序如何，fetch获取到的消息中的顺序都是从小到大的。
 
-                    print('按search条件搜索到的邮件总数:', num, '\n')
+                    # print("批量fetch获取消息:uids_bytes=", uids_bytes, '\n')
+
+                    print('按search条件搜索到的邮件总数:', len(uids_list), '\n')
 
                     # ----------------------------------- fetch messages ---------------------------------------
-                    # ===============================================================================
                     if sinflags:  # 单个模式fetch
                         i = 0
                         for uid_bytes in uids_list:
                             (typ, [(msgID_bytes, msgData_bytes), rrb_bytes]) = imapObj.fetch(uid_bytes, '(RFC822)')
-                            # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-                            print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
-
-                            # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                            # print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
+                            # fetch:| typ: OK | msgID_bytes: b'550 (RFC822 {439365}' | 右圆括号: b')' |
+                            # ----------------------------------- 以上是imaplib的事，以下是email的事 -----------------------
                             if typ == 'NO':
                                 print("单个获取uid_bytes=" + uid_bytes + "的消息失败！")
                             elif typ == 'OK':
                                 Subject = do_msg(msgData_bytes, imapObj, uid_bytes, mbfolder, s_mbfolder)
                                 i += 1
-                                print('uid_' + str(i) + ':', uid_bytes, 'decoded Subject:', Subject, '\n')
+                                # print('uid_' + str(i) + ':', uid_bytes, 'decoded Subject:', Subject, '\n')
 
-                    # ===============================================================================
+                    # ==================================================================================================
                     elif not sinflags:  # 批量模式fetch
-                        (typ, msg_data) = imapObj.fetch(uids_bytes,
-                                                        '(RFC822)')  # fetch()返回一个包含两个项目的tuple，第一个项目fetch()[0]是字符串'OK',是响应代码typ；
-                        # print('fetch:|', 'typ:', typ, '| msgID_bytes:', msgID_bytes, "| 右圆括号:", rrb_bytes, '|')
-
-                        # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------------------
+                        (typ, msg_data) = imapObj.fetch(uids_bytes, '(RFC822)')
+                        # msg_data[0]=(b'548 (RFC822 {330454}', b'Received: from ...')
+                        # ----------------------------------- 以上是imaplib的事，以下是email的事 ---------------------------
                         if typ == 'NO':
                             print("批量获取uids_bytes=" + uids_bytes.decode('utf-8') + "的消息失败！")
                         elif typ == 'OK':
                             i = 0
-                            for uid, msgData_bytes in msg_data[
-                                                      ::2]:  # list[start:stop:step] step=2 是挨个取，step=2 是隔一个取一个，不是指一次一次地取两个，step=3 是隔两个取一个。
+                            for uid, msgData_bytes in msg_data[::2][::-1]:  # step=2 是隔一个取一个，不是指一次一次地取两个。
+                                # uids_bytes不管其顺序翻不翻转msg_data中的顺序都是从小到大，故在这里对msg_data[::2]进行翻转。
                                 uid_bytes = uid.split()[0]
                                 Subject = do_msg(msgData_bytes, imapObj, uid_bytes, mbfolder, s_mbfolder)
                                 i += 1

@@ -768,7 +768,7 @@ def km221105(xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
 
 
 def km224107(xlapp_flag, k, fl_list, amt, lb, jbb, out_ws):
-    for i, v in amt.items():  # items是pd.Serie的每个项目，i是键(df的index)、v是值('224107'这列上的数据)
+    for i, v in amt.items():  # items是pd.Series的每个项目，i是键(df的index)、v是值('224107'这列上的数据)
         if v and (not (pd.isnull(v))):
             i1 = i.split(':')[0]
             i2 = i.split(':')[1]
@@ -799,7 +799,7 @@ def km1001(xlapp_flag, SInfo_df, fl_list, amt, jbb, in_df, out_ws):
         kmbm = SInfo_df['基本户-科目编码'][YYB_bm]
         yhzh = SInfo_df['基本户-银行账户编码'][YYB_bm] + ':银行账户'
 
-        if pd.isna(SInfo_df)['基本户-科目编码'][YYB_bm]:  # 若“科目编码”为空、则使用1001。 pd.isna(SInfo_df)将各元素值转化为True或False
+        if pd.isna(SInfo_df)['基本户-科目编码'][YYB_bm]:  # 若“科目编码”为空、则使用1001。 pd.isnan(SInfo_df)将各元素值转化为True或False
             kmbm = '1001'
             yhzh = ''
 

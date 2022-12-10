@@ -1,9 +1,5 @@
 import os
 import pandas as pd
-
-pd.set_option('display.unicode.ambiguous_as_wide', True)
-pd.set_option('display.unicode.east_asian_width', True)
-pd.set_option('display.width', 180)
 import datetime
 from shutil import copyfile
 
@@ -11,6 +7,10 @@ import yg_fl
 import jjr_fl
 import sb_fl
 import gjj_fl
+
+pd.set_option('display.unicode.ambiguous_as_wide', True)
+pd.set_option('display.unicode.east_asian_width', True)
+pd.set_option('display.width', 180)
 
 
 class Convert:
@@ -122,6 +122,7 @@ def yg_add_fl(zdr_bm, yyb_bm, jbb_bm, in_df, out_ws):
                         yg_fl.switcher(yg_fl.dict_AB, xlapp_flag, k, fl_list, amount_A, '01:员工', jbb_bm, out_ws)
 
                 if (k not in in_df.columns) and (k in xj_list):
+                    amount_A = 0
                     if k == '22110103':
                         amount_A = amt_a_bt
                     if k == '221102':
@@ -155,6 +156,7 @@ def yg_add_fl(zdr_bm, yyb_bm, jbb_bm, in_df, out_ws):
                         yg_fl.switcher(yg_fl.dict_AB, xlapp_flag, k, fl_list, amount_B, '05:营销人员', jbb_bm, out_ws)
 
                 if (k not in in_df.columns) and (k in xj_list):
+                    amount_B = 0
                     if k == '22110103':
                         amount_B = amt_b_bt
                     if k == '221102':
@@ -187,6 +189,7 @@ def yg_add_fl(zdr_bm, yyb_bm, jbb_bm, in_df, out_ws):
                         yg_fl.switcher(yg_fl.dict_D, xlapp_flag, k, fl_list, amount_D, '08:实习生', jbb_bm, out_ws)
 
                 if (k not in in_df.columns) and (k in xj_list):
+                    amount_D = 0
                     if k == '22110103':
                         amount_D = amt_d_bt
                     if k == '221102':
@@ -219,6 +222,7 @@ def yg_add_fl(zdr_bm, yyb_bm, jbb_bm, in_df, out_ws):
                         yg_fl.switcher(yg_fl.dict_L, xlapp_flag, k, fl_list, amount_L, '09:劳务', jbb_bm, out_ws)
 
                 if (k not in in_df.columns) and (k in xj_list):
+                    amount_L = 0
                     if k == '22110103':
                         amount_L = amt_l_bt
                     if k == '221102':
@@ -239,9 +243,9 @@ def yg_add_fl(zdr_bm, yyb_bm, jbb_bm, in_df, out_ws):
             if (amount != 0) and (not (pd.isnull(amount))):
                 amount = round(in_df[k]['合计'], 2)  # 对合计数据四舍五入，并转为字符型。
                 if k == '224107':
-                    s = in_df[k]  # 获取'224107'这一列pd.Serie这个对象
-                    tc_list = ['A1小计', 'A2小计', 'A小计', 'B小计', 'D小计', 'L小计', '合计']  # 对这个pd.Serie进行瘦身过滤下
-                    s = s[~s.index.isin(tc_list)]  # 对这个pd.Serie过滤掉ti-list  ~是对True或False逻辑值取反
+                    s = in_df[k]  # 获取'224107'这一列pd.Series这个对象
+                    tc_list = ['A1小计', 'A2小计', 'A小计', 'B小计', 'D小计', 'L小计', '合计']  # 对这个pd.Series进行瘦身过滤下
+                    s = s[~s.index.isin(tc_list)]  # 对这个pd.Series过滤掉ti-list  ~是对True或False逻辑值取反
                     amount = s
                 yg_fl.switcher(yg_fl.dict, xlapp_flag, k, fl_list, amount, '01:员工', jbb_bm, out_ws)
 
@@ -258,10 +262,10 @@ def jjr_add_fl(zdr_bm, yyb_bm, jbb_bm, in_df, out_ws):
         if (amount != 0) and (not (pd.isnull(amount))):
             amount = round(in_df[k]['合计'], 2)  # 对合计数据四舍五入，并转为字符型。
             if k == '224107':
-                s = in_df[k]  # 获取'224107'这一列pd.Serie这个对象
+                s = in_df[k]  # 获取'224107'这一列pd.Series这个对象
 
-                tc_list = ['A1小计', 'A2小计', 'A小计', 'B小计', 'D小计', 'L小计', '合计']  # 对这个pd.Serie进行瘦身过滤下
-                s = s[~s.index.isin(tc_list)]  # 对这个pd.Serie过滤掉ti-list  ~是对True或False逻辑值取反
+                tc_list = ['A1小计', 'A2小计', 'A小计', 'B小计', 'D小计', 'L小计', '合计']  # 对这个pd.Series进行瘦身过滤下
+                s = s[~s.index.isin(tc_list)]  # 对这个pd.Series过滤掉ti-list  ~是对True或False逻辑值取反
                 amount = s
             jjr_fl.switcher(jjr_fl.dict, xlapp_flag, k, fl_list, amount, jbb_bm, out_ws)
 
@@ -332,6 +336,9 @@ xlapp_flag = "xlwings"
 def out_xls(xlapp_flag, yyb_bm, pz):
     out_xlfile = "output\\" + yyb_bm + "_" + pz + ".xlsx"
     copyfile("docs\\template.xlsx", out_xlfile)
+    xlapp = ''
+    out_wb = ''
+    out_ws = ''
     if xlapp_flag == "win32com":
         from win32com.client import Dispatch
         xlapp = Dispatch("Excel.Application")
