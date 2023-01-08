@@ -88,7 +88,7 @@ def do_msg(msgData_bytes, imapObj, uid, mbfolder, s_mbfolder):
     # 对消息标头进行解码
     Subject = header_decode(Subject)
 
-    date_Ym_old = ''
+    date_Ym_old = None
     for title in titles:
         if title in Subject:
             get_att(imapObj, uid, msgObj, mbfolder, s_mbfolder, Subject, date_Ym_old)
@@ -240,8 +240,9 @@ if __name__ == '__main__':
     days = int(config['other']['days'])
     From = config['other']['From']
     sinflags = config['other']['sinflags']
-    sinflags = True if sinflags.lower() == 'true' else False  # str to bool
-    mode = ""
+    sinflags = eval(sinflags)
+    # sinflags = True if sinflags.lower() == 'true' else False  # str to bool
+    mode = None
     if sinflags:
         mode = "单个模式"
     elif not sinflags:
