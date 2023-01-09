@@ -230,23 +230,12 @@ if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read('docs/config.cfg', encoding='utf-8')
     Hostname = config['server']['hostname']
-    print(type(Hostname), Hostname)
     Port = config['server']['port']
     usernames = eval(config['account']['username'])
-    print(type(usernames), usernames)
-
     passwords = eval(config['account']['password'])
-    print(type(passwords), passwords)
-
     mbfolders = eval(config['other']['mbfolders'])
-    print(type(mbfolders), mbfolders)
-
     titles = eval(config['other']['titles'])
-    print(type(titles), titles)
-
     exts = eval(config['other']['exts'])
-    print(type(exts), exts)
-
     savedir = config['other']['savedir']
     days = int(config['other']['days'])
     From = config['other']['From']
