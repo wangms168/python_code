@@ -66,7 +66,7 @@ def textParse(text):
 
 
 if __name__ == "__main__":
-    dates = ['2023-01-05', '2023-01-04', '2023-01-03']
+    dates = ['2023-01-03', '2023-01-04', '2023-01-05']
     for date in dates:
         print(date)
         text = getHTMLText(date)

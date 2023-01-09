@@ -1,8 +1,20 @@
 import configparser
+import datetime
+from datetime import timedelta
 from chinese_calendar import is_workday
 import SH_stock
 import SH_fund
 import SZ
+
+def lwd_find():
+    for i in range(1, 11):                              #  往前10天内寻找最近工作日
+        lwd = datetime.datetime.now() - timedelta(i)    # lwd最近工作日last work date
+        if is_workday(lwd):
+            lwd = lwd.strftime('%Y-%m-%d')
+            print("往前", i, "天", lwd, "是最近工作日")
+            print(lwd)
+            break
+    return lwd
 
 def getdata(date):
     # 上海股票 =========================================================================
@@ -28,17 +40,16 @@ def getdata(date):
 
 config = configparser.ConfigParser()
 config.read('./config.cfg', encoding='utf-8')
-dates = config['dates']['dates']
-if dates == '':
-    print("无自定义日期")
-    date = None
-    getdata(date)
-else:
+dates = eval(config['dates']['dates'])
+if dates:
     print("有自定义日期")
-    dates = config['dates']['dates'].split(',')
-    print(dates)
     for date in dates:
         print('==================================================')
         print(date)
         print('==================================================')
         getdata(date)
+else:
+    print("无自定义日期")
+    date = None
+    date = lwd_find()
+    getdata(date)
