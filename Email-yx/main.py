@@ -241,8 +241,8 @@ if __name__ == '__main__':
     From = config['other']['From']
     sinflags = config['other']['sinflags']
     sinflags = eval(sinflags)
-    # sinflags = True if sinflags.lower() == 'true' else False  # str to bool
     mode = None
+    
     if sinflags:
         mode = "单个模式"
     elif not sinflags:

@@ -1,5 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+# 在本项目目录，管理员权限cmd下运行：pyinstaller main.spec
+
 block_cipher = None
 
 py_files = [

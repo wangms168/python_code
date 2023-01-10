@@ -34,7 +34,7 @@ def getHTMLText(date):
         r.encoding = r.apparent_encoding
         return r.text
     except:
-        print("网页异常!")
+        print("深交所网站异常!")
         return "网页异常"
 
 def textParse(text):
@@ -56,12 +56,12 @@ def textParse(text):
 
 if __name__ == "__main__":
     dates = ['2023-01-05', '2023-01-04', '2023-01-03']
-    for date in dates:
-        print(date)
-        text = getHTMLText(date)
-        股票_成交金额, 主板B股_成交金额, A股_成交金额, 基金_成交金额 = textParse(text)
-        print('股票_成交金额    = ', 股票_成交金额)
-        print('主板B股_成交金额 = ', 主板B股_成交金额)
-        print('A股_成交金额     = ', A股_成交金额)
-        print('基金_成交金额    = ', 基金_成交金额)
-        print('===========================================================================')
+    # for date in dates:
+    #     print(date)
+    #     text = getHTMLText(date)
+    #     股票_成交金额, 主板B股_成交金额, A股_成交金额, 基金_成交金额 = textParse(text)
+    #     print('股票_成交金额    = ', 股票_成交金额)
+    #     print('主板B股_成交金额 = ', 主板B股_成交金额)
+    #     print('A股_成交金额     = ', A股_成交金额)
+    #     print('基金_成交金额    = ', 基金_成交金额)
+    #     print('===========================================================================')
