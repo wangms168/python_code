@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-# 在本项目目录下、在管理员权限cmd下运行：pyinstaller main.spec
+# 在main.spec文件所在目录下启动管理员权限cmd，运行：pyinstaller main.spec
 
 block_cipher = None
 
