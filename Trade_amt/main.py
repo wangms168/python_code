@@ -61,5 +61,5 @@ else:
     writeXL.writeXL(xlfile, date, SH_A, SH_jj, SH_kcb, SZ_A, SZ_jj)
     
 print("程序运行完毕！")
-time.sleep(3)
+time.sleep(1)
 print(f'耗时：{time.time() - start_time}')
