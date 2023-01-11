@@ -40,6 +40,7 @@ def getdata(date):
 
     return 上海主板A_成交金额, 上海基金_成交金额, 上海科创版_成交金额, 深圳A股_成交金额, 深圳基金_成交金额
 
+start_time = time.time()
 print("程序开始运行......")
 config = configparser.ConfigParser()
 config.read('docs./config.cfg', encoding='utf-8')
@@ -61,3 +62,4 @@ else:
     
 print("程序运行完毕！")
 time.sleep(3)
+print(f'耗时：{time.time() - start_time}')
